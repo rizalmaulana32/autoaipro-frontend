@@ -1,0 +1,139 @@
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { usePropertyStore } from '@/store';
+import { Button } from '@/components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+
+export default function Properties() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const {
+    filteredProperties,
+    loading,
+    error,
+    filters,
+    fetchProperties,
+    setFilters,
+  } = usePropertyStore();
+
+  useEffect(() => {
+    fetchProperties();
+  }, []);
+
+  const viewProperty = (id: string) => {
+    navigate(`/properties/${id}`);
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ja-JP');
+  };
+
+  const properties = filteredProperties();
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Page Title */}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">{t('properties.title')}</h1>
+          <p className="text-gray-600 mt-2">{properties.length} {t('properties.title')}</p>
+        </div>
+
+        {/* Search */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex gap-4 items-end">
+              <div className="flex-1 space-y-2">
+                <Label>{t('common.search')}</Label>
+                <Input
+                  value={filters.search}
+                  onChange={(e) => setFilters({ search: e.target.value })}
+                  placeholder={t('properties.searchPlaceholder')}
+                />
+              </div>
+              <Button onClick={fetchProperties} disabled={loading}>
+                {loading ? t('common.loading') : t('properties.fetchProperties')}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Properties List */}
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">{t('common.loading')}</p>
+          </div>
+        ) : error ? (
+          <Card className="border-destructive">
+            <CardContent className="pt-6">
+              <p className="text-destructive">{error}</p>
+            </CardContent>
+          </Card>
+        ) : properties.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">{t('properties.noProperties')}</p>
+            <Button variant="outline" className="mt-4" onClick={fetchProperties}>
+              {t('properties.fetchProperties')}
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {properties.map((property) => (
+              <Card
+                key={property._id}
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => viewProperty(property._id)}
+              >
+                <CardHeader>
+                  <CardTitle className="text-lg">
+                    {property.buildingName || t('properties.noName')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">{t('properties.reinsId')}:</span>
+                      <span className="font-medium">{property.reins_id}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">{t('properties.address')}:</span>
+                      <span className="font-medium text-right">
+                        {property.prefecture || ''} {property.city || ''}
+                      </span>
+                    </div>
+                    {property.rent && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">{t('properties.rent')}:</span>
+                        <span className="font-medium">
+                          ¥{property.rent}
+                        </span>
+                      </div>
+                    )}
+                    {property.layoutType && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">{t('properties.layout')}:</span>
+                        <span className="font-medium">{property.layoutType}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">{t('properties.createdAt')}:</span>
+                      <span className="font-medium">
+                        {formatDate(property.created_at)}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+}

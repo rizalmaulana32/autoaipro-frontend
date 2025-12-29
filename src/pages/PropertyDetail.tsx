@@ -1,21 +1,19 @@
 import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuthStore, usePropertyStore } from '@/store';
+import { useTranslation } from 'react-i18next';
+import { usePropertyStore } from '@/store';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Label } from '@/components/ui/Label';
-import { Badge } from '@/components/ui/Badge';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import { ArrowLeft, Download, ExternalLink } from 'lucide-react';
+
+const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export default function PropertyDetail() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { logout } = useAuthStore();
-  const { currentProperty, loading, error, fetchProperty, deleteProperty } =
-    usePropertyStore();
-
-  const apiBaseUrl =
-    import.meta.env.VITE_API_BASE_URL?.replace('/api', '') ||
-    'http://localhost:3000';
+  const { currentProperty, loading, fetchProperty } = usePropertyStore();
 
   useEffect(() => {
     if (id) {
@@ -23,398 +21,497 @@ export default function PropertyDetail() {
     }
   }, [id]);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
-  const handleDelete = async () => {
-    if (confirm('本当にこの物件を削除しますか？')) {
-      try {
-        if (id) {
-          await deleteProperty(id);
-          navigate('/');
-        }
-      } catch (error) {
-        console.error('Failed to delete property:', error);
-      }
-    }
-  };
-
   const openFile = (path: string) => {
-    const url = `${apiBaseUrl}${path}`;
+    if (!path) return;
+    let cleanPath = path.replace(/^storage\//, '');
+    cleanPath = `/files/${cleanPath}`;
+    const url = `${apiBaseUrl}${cleanPath}`;
     window.open(url, '_blank');
   };
 
-  const formatDateTime = (dateString: string) => {
+  const downloadFile = (path: string, filename: string) => {
+    if (!path) return;
+    let cleanPath = path.replace(/^storage\//, '');
+    cleanPath = `/files/${cleanPath}`;
+    const url = `${apiBaseUrl}${cleanPath}`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const formatDate = (dateString: string) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    return date.toLocaleString('ja-JP');
+    return date.toLocaleDateString('ja-JP');
   };
 
-  const getStatusVariant = (status: string) => {
-    const variants: Record<string, any> = {
-      pending: 'warning',
-      processing: 'default',
-      success: 'success',
-      failed: 'destructive',
-    };
-    return variants[status] || 'secondary';
-  };
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">
+          <p className="text-gray-500">{t('common.loading')}</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
-  const statusLabels: Record<string, string> = {
-    pending: '保留中',
-    processing: '処理中',
-    success: '成功',
-    failed: '失敗',
-  };
+  if (!currentProperty) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">
+          <p className="text-gray-500">{t('properties.noProperties')}</p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => navigate('/')}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            {t('common.back')}
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   const property = currentProperty;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
-                ← 戻る
-              </Button>
-              <h1 className="text-2xl font-bold text-gray-900">物件詳細</h1>
-            </div>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
-              ログアウト
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate('/')}
+            >
+              <ArrowLeft className="h-4 w-4" />
             </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {property.buildingName || t('properties.noName')}
+              </h1>
+              <p className="text-gray-600 mt-1">
+                {t('properties.reinsId')}: {property.reins_id}
+              </p>
+            </div>
           </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Loading */}
-        {loading && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">読み込み中...</p>
-          </div>
-        )}
+        {/* Basic Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('properties.basicInfo')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {property.buildingName && (
+                <div>
+                  <span className="text-sm text-gray-600">{t('properties.buildingName')}</span>
+                  <p className="font-medium">{property.buildingName}</p>
+                </div>
+              )}
+              {property.roomNumber && (
+                <div>
+                  <span className="text-sm text-gray-600">{t('properties.roomNumber')}</span>
+                  <p className="font-medium">{property.roomNumber}</p>
+                </div>
+              )}
+              <div>
+                <span className="text-sm text-gray-600">{t('properties.reinsId')}</span>
+                <p className="font-medium">{property.reins_id}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Error */}
-        {error && (
-          <Card className="border-destructive">
-            <CardContent className="pt-6">
-              <p className="text-destructive">{error}</p>
+        {/* Price Information - only show if there's data */}
+        {(property.rent || property.managementFee || property.commonServiceFee || property.securityDeposit || property.keyMoney || property.guaranteeDeposit) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('properties.priceInfo')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {property.rent && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.monthlyRent')}</span>
+                    <p className="font-medium text-lg">¥{property.rent}</p>
+                  </div>
+                )}
+                {property.managementFee && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.managementFee')}</span>
+                    <p className="font-medium">¥{property.managementFee}</p>
+                  </div>
+                )}
+                {property.commonServiceFee && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.commonServiceFee')}</span>
+                    <p className="font-medium">¥{property.commonServiceFee}</p>
+                  </div>
+                )}
+                {property.securityDeposit && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.securityDeposit')}</span>
+                    <p className="font-medium">¥{property.securityDeposit}</p>
+                  </div>
+                )}
+                {property.keyMoney && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.keyMoney')}</span>
+                    <p className="font-medium">¥{property.keyMoney}</p>
+                  </div>
+                )}
+                {property.guaranteeDeposit && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.guaranteeDeposit')}</span>
+                    <p className="font-medium">¥{property.guaranteeDeposit}</p>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Property Details */}
-        {property && (
-          <div className="space-y-6">
-            {/* Header Card */}
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-start">
+        {/* Location - only show if there's data */}
+        {(property.prefecture || property.city || property.town || property.addressDetail) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('properties.location')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {property.prefecture && (
                   <div>
-                    <CardTitle className="text-3xl">
-                      {property.buildingName || '名称未設定'}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      REINS ID: {property.reins_id}
-                    </p>
+                    <span className="text-sm text-gray-600">{t('properties.prefecture')}</span>
+                    <p className="font-medium">{property.prefecture}</p>
                   </div>
-                  <Badge
-                    variant={getStatusVariant(property.status)}
-                    className="text-lg px-4 py-2"
-                  >
-                    {statusLabels[property.status]}
-                  </Badge>
-                </div>
-              </CardHeader>
-            </Card>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Main Info */}
-              <div className="lg:col-span-2 space-y-6">
-                {/* Basic Info */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>基本情報</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-gray-600">賃料</Label>
-                        <p className="font-semibold text-lg">
-                          {property.rent?.monthlyRent
-                            ? `¥${property.rent.monthlyRent.toLocaleString()}`
-                            : '-'}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-600">管理費</Label>
-                        <p className="font-semibold text-lg">
-                          {property.rent?.managementFee
-                            ? `¥${property.rent.managementFee.toLocaleString()}`
-                            : '-'}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-600">敷金</Label>
-                        <p className="font-semibold">
-                          {property.rent?.deposit
-                            ? `¥${property.rent.deposit.toLocaleString()}`
-                            : '-'}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-600">礼金</Label>
-                        <p className="font-semibold">
-                          {property.rent?.keyMoney
-                            ? `¥${property.rent.keyMoney.toLocaleString()}`
-                            : '-'}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Address Info */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>所在地</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-lg">
-                      {property.address?.prefecture || ''}{' '}
-                      {property.address?.city || ''}{' '}
-                      {property.address?.town || ''}{' '}
-                      {property.address?.detail || ''}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* Building Info */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>建物情報</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-gray-600">構造</Label>
-                        <p className="font-semibold">
-                          {property.building?.structure || '-'}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-600">階数</Label>
-                        <p className="font-semibold">
-                          {property.building?.floors
-                            ? `${property.building.floors}階建`
-                            : '-'}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-600">築年月</Label>
-                        <p className="font-semibold">
-                          {property.building?.builtYear &&
-                          property.building?.builtMonth
-                            ? `${property.building.builtYear}年${property.building.builtMonth}月`
-                            : '-'}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Room Info */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>部屋情報</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-gray-600">所在階</Label>
-                        <p className="font-semibold">
-                          {property.room?.floorLocation || '-'}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-600">間取り</Label>
-                        <p className="font-semibold">
-                          {property.room?.layout || '-'}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-600">面積</Label>
-                        <p className="font-semibold">
-                          {property.room?.area
-                            ? `${property.room.area}㎡`
-                            : '-'}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Equipment & Amenities */}
-                {(property.equipment?.length || property.amenities?.length) && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>設備・特徴</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {property.equipment?.length && (
-                          <div>
-                            <Label className="text-gray-600">設備</Label>
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {property.equipment.map((item, index) => (
-                                <Badge key={index} variant="secondary">
-                                  {item}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {property.amenities?.length && (
-                          <div>
-                            <Label className="text-gray-600">アメニティ</Label>
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {property.amenities.map((item, index) => (
-                                <Badge key={index} variant="outline">
-                                  {item}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                )}
+                {property.city && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.city')}</span>
+                    <p className="font-medium">{property.city}</p>
+                  </div>
+                )}
+                {property.town && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.town')}</span>
+                    <p className="font-medium">{property.town}</p>
+                  </div>
+                )}
+                {property.addressDetail && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.addressDetail')}</span>
+                    <p className="font-medium">{property.addressDetail}</p>
+                  </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        )}
 
-              {/* Sidebar */}
-              <div className="space-y-6">
-                {/* Files */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>ファイル</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {/* PDF */}
-                    {property.files?.floorplan_filename && (
-                      <div>
-                        <Label className="text-gray-600">間取図（PDF）</Label>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full mt-2"
-                          onClick={() =>
-                            openFile(property.files!.floorplan_path!)
-                          }
-                        >
-                          PDFを開く
-                        </Button>
-                      </div>
+        {/* Transportation */}
+        {(property.railwayLine1 || property.railwayLine2 || property.railwayLine3) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('properties.transportation')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {property.railwayLine1 && (
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <span className="text-sm text-gray-600">{t('properties.railwayLine')} 1:</span>
+                    <span className="font-medium">{property.railwayLine1}</span>
+                    {property.station1 && (
+                      <>
+                        <span className="text-gray-400">→</span>
+                        <span className="font-medium">{property.station1}</span>
+                        {property.walkMinutes1 && (
+                          <span className="text-sm text-gray-600">
+                            {t('properties.walkMinutes')} {property.walkMinutes1}{t('properties.minutes')}
+                          </span>
+                        )}
+                      </>
                     )}
-
-                    {/* HTML */}
-                    {property.files?.html_filename && (
-                      <div>
-                        <Label className="text-gray-600">
-                          HTMLスナップショット
-                        </Label>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full mt-2"
-                          onClick={() => openFile(property.files!.html_path!)}
-                        >
-                          HTMLを開く
-                        </Button>
-                      </div>
+                  </div>
+                )}
+                {property.railwayLine2 && (
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <span className="text-sm text-gray-600">{t('properties.railwayLine')} 2:</span>
+                    <span className="font-medium">{property.railwayLine2}</span>
+                    {property.station2 && (
+                      <>
+                        <span className="text-gray-400">→</span>
+                        <span className="font-medium">{property.station2}</span>
+                        {property.walkMinutes2 && (
+                          <span className="text-sm text-gray-600">
+                            {t('properties.walkMinutes')} {property.walkMinutes2}{t('properties.minutes')}
+                          </span>
+                        )}
+                      </>
                     )}
-
-                    {/* Images */}
-                    {property.files?.image_filenames?.length && (
-                      <div>
-                        <Label className="text-gray-600">
-                          画像 ({property.files.image_filenames.length}枚)
-                        </Label>
-                        <div className="grid grid-cols-2 gap-2 mt-2">
-                          {property.files.image_paths
-                            ?.slice(0, 4)
-                            .map((path, index) => (
-                              <button
-                                key={index}
-                                onClick={() => openFile(path)}
-                                className="aspect-square rounded-md overflow-hidden border hover:border-primary transition-colors"
-                              >
-                                <img
-                                  src={`${apiBaseUrl}${path}`}
-                                  alt={`画像 ${index + 1}`}
-                                  className="w-full h-full object-cover"
-                                />
-                              </button>
-                            ))}
-                        </div>
-                        {property.files.image_paths &&
-                          property.files.image_paths.length > 4 && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full mt-2"
-                            >
-                              すべて表示 ({property.files.image_paths.length})
-                            </Button>
-                          )}
-                      </div>
+                  </div>
+                )}
+                {property.railwayLine3 && (
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <span className="text-sm text-gray-600">{t('properties.railwayLine')} 3:</span>
+                    <span className="font-medium">{property.railwayLine3}</span>
+                    {property.station3 && (
+                      <>
+                        <span className="text-gray-400">→</span>
+                        <span className="font-medium">{property.station3}</span>
+                        {property.walkMinutes3 && (
+                          <span className="text-sm text-gray-600">
+                            {t('properties.walkMinutes')} {property.walkMinutes3}{t('properties.minutes')}
+                          </span>
+                        )}
+                      </>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-                {/* Metadata */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>メタデータ</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <div>
-                      <Label className="text-gray-600">作成日</Label>
-                      <p>{formatDateTime(property.created_at)}</p>
+        {/* Building Information - only show if there's data */}
+        {(property.buildingStructure || property.constructionDate || property.aboveGroundFloors || property.undergroundFloors) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('properties.buildingInfo')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {property.buildingStructure && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.buildingStructure')}</span>
+                    <p className="font-medium">{property.buildingStructure}</p>
+                  </div>
+                )}
+                {property.constructionDate && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.constructionDate')}</span>
+                    <p className="font-medium">{property.constructionDate}</p>
+                  </div>
+                )}
+                {property.aboveGroundFloors && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.aboveGroundFloors')}</span>
+                    <p className="font-medium">{property.aboveGroundFloors}</p>
+                  </div>
+                )}
+                {property.undergroundFloors && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.undergroundFloors')}</span>
+                    <p className="font-medium">{property.undergroundFloors}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Room Information - only show if there's data */}
+        {(property.layoutType || property.roomCount || property.floorLocation || property.usableArea || property.balconyArea || property.balconyDirection) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('properties.roomInfo')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {property.layoutType && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.layoutType')}</span>
+                    <p className="font-medium">{property.layoutType}</p>
+                  </div>
+                )}
+                {property.roomCount && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.roomCount')}</span>
+                    <p className="font-medium">{property.roomCount}</p>
+                  </div>
+                )}
+                {property.floorLocation && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.floorLocation')}</span>
+                    <p className="font-medium">{property.floorLocation}</p>
+                  </div>
+                )}
+                {property.usableArea && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.usableArea')}</span>
+                    <p className="font-medium">{property.usableArea} m²</p>
+                  </div>
+                )}
+                {property.balconyArea && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.balconyArea')}</span>
+                    <p className="font-medium">{property.balconyArea} m²</p>
+                  </div>
+                )}
+                {property.balconyDirection && (
+                  <div>
+                    <span className="text-sm text-gray-600">{t('properties.balconyDirection')}</span>
+                    <p className="font-medium">{property.balconyDirection}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Equipment & Amenities */}
+        {(property.equipment || property.amenities) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('properties.equipmentAmenities')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {property.equipment && (
+                  <div>
+                    <span className="text-sm text-gray-600 block mb-2">{t('properties.equipment')}</span>
+                    <p className="text-sm whitespace-pre-wrap">{property.equipment}</p>
+                  </div>
+                )}
+                {property.amenities && (
+                  <div>
+                    <span className="text-sm text-gray-600 block mb-2">{t('properties.amenities')}</span>
+                    <p className="text-sm whitespace-pre-wrap">{property.amenities}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Files */}
+        {property.files && (property.files.floorplan_path || property.files.html_path || (property.files.image_paths && property.files.image_paths.length > 0)) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('properties.files')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Floor Plan PDF */}
+                {property.files.floorplan_path && (
+                  <div>
+                    <span className="text-sm text-gray-600 block mb-2">{t('properties.floorPlan')}</span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openFile(property.files!.floorplan_path!)}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        {t('properties.openPdf')}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          downloadFile(
+                            property.files!.floorplan_path!,
+                            property.files!.floorplan_filename || 'floorplan.pdf'
+                          )
+                        }
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        {t('properties.downloadPdf')}
+                      </Button>
                     </div>
-                    <div>
-                      <Label className="text-gray-600">更新日</Label>
-                      <p>{formatDateTime(property.updated_at)}</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                )}
 
-                {/* Actions */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>アクション</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="w-full"
-                      onClick={handleDelete}
-                    >
-                      削除
-                    </Button>
-                  </CardContent>
-                </Card>
+                {/* HTML Snapshot */}
+                {property.files.html_path && (
+                  <div>
+                    <span className="text-sm text-gray-600 block mb-2">{t('properties.htmlSnapshot')}</span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openFile(property.files!.html_path!)}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        {t('properties.openHtml')}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          downloadFile(
+                            property.files!.html_path!,
+                            property.files!.html_filename || 'snapshot.html'
+                          )
+                        }
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        {t('properties.downloadHtml')}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Images */}
+                {property.files.image_paths && property.files.image_paths.length > 0 && (
+                  <div>
+                    <span className="text-sm text-gray-600 block mb-2">
+                      {t('properties.images')} ({property.files.image_paths.length})
+                    </span>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {property.files.image_paths.map((imagePath, index) => {
+                        const cleanPath = imagePath.replace(/^storage\//, '');
+                        const imageUrl = `${apiBaseUrl}/files/${cleanPath}`;
+                        return (
+                          <div
+                            key={index}
+                            className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => openFile(imagePath)}
+                          >
+                            <img
+                              src={imageUrl}
+                              alt={`Property image ${index + 1}`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+                              }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Metadata */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('properties.metadata')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <span className="text-sm text-gray-600">{t('properties.createdAt')}</span>
+                <p className="font-medium">{formatDate(property.created_at)}</p>
+              </div>
+              <div>
+                <span className="text-sm text-gray-600">{t('properties.updatedAt')}</span>
+                <p className="font-medium">{formatDate(property.updated_at)}</p>
               </div>
             </div>
-          </div>
-        )}
-      </main>
-    </div>
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
   );
 }

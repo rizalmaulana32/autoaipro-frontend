@@ -5,7 +5,6 @@ interface AuthState {
   user: User | null;
   token: string | null;
   loading: boolean;
-  error: string | null;
   isLoggedIn: boolean;
 
   // Actions
@@ -13,19 +12,17 @@ interface AuthState {
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
-  clearError: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   token: localStorage.getItem('token'),
   loading: false,
-  error: null,
-  isLoggedIn: !!localStorage.getItem('token'),
+  isLoggedIn: false,
 
   login: async (credentials) => {
     try {
-      set({ loading: true, error: null });
+      set({ loading: true });
       const response = await authApi.login(credentials);
 
       localStorage.setItem('token', response.token);
@@ -38,17 +35,14 @@ export const useAuthStore = create<AuthState>((set) => ({
         isLoggedIn: true,
       });
     } catch (error: any) {
-      set({
-        error: error.message || 'Login failed',
-        loading: false,
-      });
-      throw error;
+      set({ loading: false });
+      throw error; // Toast will be shown by axios interceptor
     }
   },
 
   register: async (data) => {
     try {
-      set({ loading: true, error: null });
+      set({ loading: true });
       const response = await authApi.register(data);
 
       localStorage.setItem('token', response.token);
@@ -61,11 +55,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         isLoggedIn: true,
       });
     } catch (error: any) {
-      set({
-        error: error.message || 'Registration failed',
-        loading: false,
-      });
-      throw error;
+      set({ loading: false });
+      throw error; // Toast will be shown by axios interceptor
     }
   },
 
@@ -100,8 +91,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         token: null,
         isLoggedIn: false,
       });
+      // Toast will be shown by axios interceptor
     }
   },
-
-  clearError: () => set({ error: null }),
 }));

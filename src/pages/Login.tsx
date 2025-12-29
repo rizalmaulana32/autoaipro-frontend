@@ -11,7 +11,7 @@ import { Globe } from 'lucide-react';
 export default function Login() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { login, loading, error, clearError } = useAuthStore();
+  const { login, loading } = useAuthStore();
 
   const [formData, setFormData] = useState({
     username: '',
@@ -20,7 +20,6 @@ export default function Login() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    clearError();
 
     try {
       await login({
@@ -29,6 +28,7 @@ export default function Login() {
       });
       navigate('/');
     } catch (err) {
+      // Error toast will be shown by axios interceptor
       console.error('Login failed:', err);
     }
   };
@@ -103,13 +103,6 @@ export default function Login() {
                   disabled={loading}
                 />
               </div>
-
-              {/* Error Message */}
-              {error && (
-                <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                  {error}
-                </div>
-              )}
 
               {/* Submit Button */}
               <Button type="submit" className="w-full" disabled={loading}>

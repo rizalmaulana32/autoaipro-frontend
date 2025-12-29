@@ -11,16 +11,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {/* Header - Full Width */}
+      <Header onMenuClick={() => setSidebarOpen(true)} />
 
-      {/* Main Content Area */}
-      <div className="lg:pl-64">
-        {/* Header */}
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+      <div className="flex pt-16">
+        {/* Sidebar */}
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-        {/* Page Content */}
-        <main className="p-4 lg:p-6">{children}</main>
+        {/* Main Content Area */}
+        <main className="flex-1 lg:ml-64 p-4 lg:p-8 min-h-[calc(100vh-4rem)]">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   );

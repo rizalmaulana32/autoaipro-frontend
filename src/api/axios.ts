@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'sonner';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
@@ -29,16 +30,28 @@ api.interceptors.response.use(
   (error) => {
     // Handle 401 Unauthorized - token expired or invalid
     if (error.response?.status === 401) {
+      // Only redirect to login if we're not already on the login page
+      const isLoginPage = window.location.pathname === '/login';
+
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+
+      if (!isLoginPage) {
+        toast.error('Session expired. Please login again.');
+        window.location.href = '/login';
+      } else {
+        // On login page, just show the error without redirecting
+        const errorMessage = error.response?.data?.message || 'Invalid credentials';
+        toast.error(errorMessage);
+      }
+    } else {
+      // Handle other errors - show toast notification
+      const errorMessage = error.response?.data?.message || error.message || 'An error occurred';
+      toast.error(errorMessage);
     }
 
-    // Handle other errors
-    const errorMessage = error.response?.data?.message || error.message || 'An error occurred';
-
     return Promise.reject({
-      message: errorMessage,
+      message: error.response?.data?.message || error.message || 'An error occurred',
       status: error.response?.status,
       data: error.response?.data,
     });

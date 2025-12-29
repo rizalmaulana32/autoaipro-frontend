@@ -20,7 +20,7 @@ export default {
   nav: {
     dashboard: 'Dashboard',
     properties: 'Properties',
-    settings: 'Settings',
+    autoInputSuumo: 'Auto Input SUUMO',
   },
 
   // Auth
@@ -42,8 +42,20 @@ export default {
     propertyList: 'Property List',
     propertyDetail: 'Property Detail',
     noProperties: 'No properties found',
-    fetchProperties: 'Fetch Properties',
-    searchPlaceholder: 'Search by property name, REINS ID...',
+    searchPlaceholder: 'Search by all attributes...',
+
+    // Filters
+    filters: 'Filters',
+    filterProperties: 'Filter Properties',
+    filterDescription: 'Refine your property search with detailed filters',
+    applyFilters: 'Apply Filters',
+    clearFilters: 'Clear All',
+    clearAll: 'Clear All',
+    activeFilters: 'Active Filters',
+    minRent: 'Min Rent',
+    maxRent: 'Max Rent',
+    minArea: 'Min Area (m²)',
+    maxArea: 'Max Area (m²)',
     status: 'Status',
 
     // Status labels
@@ -65,21 +77,45 @@ export default {
 
     // Property detail sections
     basicInfo: 'Basic Information',
+    priceInfo: 'Price Information',
     monthlyRent: 'Monthly Rent',
     managementFee: 'Management Fee',
-    deposit: 'Deposit',
+    commonServiceFee: 'Common Service Fee',
+    securityDeposit: 'Security Deposit',
     keyMoney: 'Key Money',
+    guaranteeDeposit: 'Guarantee Deposit',
 
     location: 'Location',
+    prefecture: 'Prefecture',
+    city: 'City',
+    town: 'Town',
+    addressDetail: 'Address Detail',
+    roomNumber: 'Room Number',
+
+    transportation: 'Transportation',
+    railwayLine: 'Railway Line',
+    station: 'Station',
+    walkMinutes: 'Walk',
+    minutes: 'min',
+
     buildingInfo: 'Building Information',
     structure: 'Structure',
+    buildingStructure: 'Building Structure',
+    aboveGroundFloors: 'Above Ground Floors',
+    undergroundFloors: 'Underground Floors',
     floors: 'Floors',
     floorsUnit: 'floors',
     builtDate: 'Built Date',
+    constructionDate: 'Construction Date',
 
     roomInfo: 'Room Information',
     floorLocation: 'Floor Location',
+    layoutType: 'Layout Type',
+    roomCount: 'Room Count',
     area: 'Area',
+    usableArea: 'Usable Area',
+    balconyArea: 'Balcony Area',
+    balconyDirection: 'Balcony Direction',
 
     equipmentAmenities: 'Equipment & Amenities',
     equipment: 'Equipment',
@@ -88,15 +124,25 @@ export default {
     files: 'Files',
     floorPlan: 'Floor Plan (PDF)',
     openPdf: 'Open PDF',
+    downloadPdf: 'Download PDF',
     htmlSnapshot: 'HTML Snapshot',
     openHtml: 'Open HTML',
+    downloadHtml: 'Download HTML',
     images: 'Images',
     imagesCount: '{{count}} images',
     showAll: 'Show All ({{count}})',
+    noImages: 'No images available',
 
     metadata: 'Metadata',
     actions: 'Actions',
     deleteProperty: 'Delete',
     deleteConfirm: 'Are you sure you want to delete this property?',
+  },
+
+  // Auto Input SUUMO
+  autoInputSuumo: {
+    description: 'Automatically fill property data into SUUMO portal',
+    comingSoonTitle: 'Coming Soon',
+    comingSoonMessage: 'This feature is currently under development. You will be able to automatically input property data into SUUMO portal soon.',
   },
 };
