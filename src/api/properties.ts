@@ -57,10 +57,13 @@ export interface Property {
   files?: {
     html_path?: string;
     html_filename?: string;
+    html_url?: string;
     floorplan_path?: string;
     floorplan_filename?: string;
+    floorplan_url?: string;
     image_paths?: string[];
     image_filenames?: string[];
+    image_urls?: string[];
   };
 
   // Metadata

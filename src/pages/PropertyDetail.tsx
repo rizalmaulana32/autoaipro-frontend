@@ -21,21 +21,32 @@ export default function PropertyDetail() {
     }
   }, [id]);
 
-  const openFile = (path: string) => {
-    if (!path) return;
-    let cleanPath = path.replace(/^storage\//, '');
+  const openFile = (url: string) => {
+    if (!url) return;
+    // If it's already a full URL (Supabase), use it directly
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      window.open(url, '_blank');
+      return;
+    }
+    // Otherwise, construct local URL (for backward compatibility)
+    let cleanPath = url.replace(/^storage\//, '');
     cleanPath = `/files/${cleanPath}`;
-    const url = `${apiBaseUrl}${cleanPath}`;
-    window.open(url, '_blank');
+    const fullUrl = `${apiBaseUrl}${cleanPath}`;
+    window.open(fullUrl, '_blank');
   };
 
-  const downloadFile = (path: string, filename: string) => {
-    if (!path) return;
-    let cleanPath = path.replace(/^storage\//, '');
-    cleanPath = `/files/${cleanPath}`;
-    const url = `${apiBaseUrl}${cleanPath}`;
+  const downloadFile = (url: string, filename: string) => {
+    if (!url) return;
+    // If it's already a full URL (Supabase), use it directly
+    let downloadUrl = url;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      // Construct local URL for backward compatibility
+      let cleanPath = url.replace(/^storage\//, '');
+      cleanPath = `/files/${cleanPath}`;
+      downloadUrl = `${apiBaseUrl}${cleanPath}`;
+    }
     const link = document.createElement('a');
-    link.href = url;
+    link.href = downloadUrl;
     link.download = filename;
     document.body.appendChild(link);
     link.click();
@@ -399,14 +410,14 @@ export default function PropertyDetail() {
             <CardContent>
               <div className="space-y-4">
                 {/* Floor Plan PDF */}
-                {property.files.floorplan_path && (
+                {(property.files.floorplan_url || property.files.floorplan_path) && (
                   <div>
                     <span className="text-sm text-gray-600 block mb-2">{t('properties.floorPlan')}</span>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => openFile(property.files!.floorplan_path!)}
+                        onClick={() => openFile(property.files!.floorplan_url || property.files!.floorplan_path!)}
                       >
                         <ExternalLink className="h-4 w-4 mr-2" />
                         {t('properties.openPdf')}
@@ -416,7 +427,7 @@ export default function PropertyDetail() {
                         size="sm"
                         onClick={() =>
                           downloadFile(
-                            property.files!.floorplan_path!,
+                            property.files!.floorplan_url || property.files!.floorplan_path!,
                             property.files!.floorplan_filename || 'floorplan.pdf'
                           )
                         }
@@ -429,14 +440,14 @@ export default function PropertyDetail() {
                 )}
 
                 {/* HTML Snapshot */}
-                {property.files.html_path && (
+                {(property.files.html_url || property.files.html_path) && (
                   <div>
                     <span className="text-sm text-gray-600 block mb-2">{t('properties.htmlSnapshot')}</span>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => openFile(property.files!.html_path!)}
+                        onClick={() => openFile(property.files!.html_url || property.files!.html_path!)}
                       >
                         <ExternalLink className="h-4 w-4 mr-2" />
                         {t('properties.openHtml')}
@@ -446,7 +457,7 @@ export default function PropertyDetail() {
                         size="sm"
                         onClick={() =>
                           downloadFile(
-                            property.files!.html_path!,
+                            property.files!.html_url || property.files!.html_path!,
                             property.files!.html_filename || 'snapshot.html'
                           )
                         }
@@ -459,20 +470,28 @@ export default function PropertyDetail() {
                 )}
 
                 {/* Images */}
-                {property.files.image_paths && property.files.image_paths.length > 0 && (
+                {((property.files.image_urls && property.files.image_urls.length > 0) ||
+                  (property.files.image_paths && property.files.image_paths.length > 0)) && (
                   <div>
                     <span className="text-sm text-gray-600 block mb-2">
-                      {t('properties.images')} ({property.files.image_paths.length})
+                      {t('properties.images')} ({property.files.image_urls?.length || property.files.image_paths?.length || 0})
                     </span>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {property.files.image_paths.map((imagePath, index) => {
-                        const cleanPath = imagePath.replace(/^storage\//, '');
-                        const imageUrl = `${apiBaseUrl}/files/${cleanPath}`;
+                      {/* Prefer image_urls (Supabase), fall back to image_paths (local) */}
+                      {(property.files.image_urls && property.files.image_urls.length > 0
+                        ? property.files.image_urls
+                        : property.files.image_paths
+                      )?.map((urlOrPath, index) => {
+                        // Determine image URL based on type
+                        const imageUrl = urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')
+                          ? urlOrPath  // It's already a full URL (Supabase)
+                          : `${apiBaseUrl}/files/${urlOrPath.replace(/^storage\//, '')}`; // Construct local URL
+
                         return (
                           <div
                             key={index}
                             className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => openFile(imagePath)}
+                            onClick={() => openFile(imageUrl)}
                           >
                             <img
                               src={imageUrl}
