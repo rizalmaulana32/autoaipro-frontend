@@ -35,22 +35,40 @@ export default function PropertyDetail() {
     window.open(fullUrl, '_blank');
   };
 
-  const downloadFile = (url: string, filename: string) => {
+  const downloadFile = async (url: string, filename: string) => {
     if (!url) return;
-    // If it's already a full URL (Supabase), use it directly
-    let downloadUrl = url;
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      // Construct local URL for backward compatibility
-      let cleanPath = url.replace(/^storage\//, '');
-      cleanPath = `/files/${cleanPath}`;
-      downloadUrl = `${apiBaseUrl}${cleanPath}`;
+
+    try {
+      // Determine the final URL
+      let downloadUrl = url;
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        // Construct local URL for backward compatibility
+        let cleanPath = url.replace(/^storage\//, '');
+        cleanPath = `/files/${cleanPath}`;
+        downloadUrl = `${apiBaseUrl}${cleanPath}`;
+      }
+
+      // Fetch the file as blob to force download
+      const response = await fetch(downloadUrl);
+      if (!response.ok) throw new Error('Download failed');
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      // Create and trigger download
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up blob URL
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download file. Please try again.');
     }
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   const formatDate = (dateString: string) => {

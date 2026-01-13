@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router-dom';
-import { Building2, FileEdit, X } from 'lucide-react';
+import { Building2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 
@@ -17,11 +17,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       name: t('nav.properties'),
       href: '/',
       icon: Building2,
-    },
-    {
-      name: t('nav.autoInputSuumo'),
-      href: '/auto-input-suumo',
-      icon: FileEdit,
     },
   ];
 

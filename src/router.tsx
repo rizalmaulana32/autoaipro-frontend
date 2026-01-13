@@ -4,7 +4,6 @@ import { useAuthStore } from './store';
 import Login from './pages/Login';
 import Properties from './pages/Properties';
 import PropertyDetail from './pages/PropertyDetail';
-import AutoInputSuumo from './pages/AutoInputSuumo';
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -57,14 +56,6 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <PropertyDetail />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: '/auto-input-suumo',
-    element: (
-      <ProtectedRoute>
-        <AutoInputSuumo />
       </ProtectedRoute>
     ),
   },
