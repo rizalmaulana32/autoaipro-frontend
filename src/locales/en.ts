@@ -165,6 +165,12 @@ export default {
     deleting: 'Deleting...',
     deleteBtn: 'Delete',
     propertiesUnit: '{{count}} items',
+    addUser: 'Add User',
+    createUser: 'Create User',
+    createUserDesc: 'Add a new user account.',
+    passwordPlaceholder: 'Min 6 characters',
+    creating: 'Creating...',
+    errorDuplicate: 'Username or email already exists',
   },
 
   // Auto Input SUUMO

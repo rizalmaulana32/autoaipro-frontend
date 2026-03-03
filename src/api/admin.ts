@@ -15,4 +15,9 @@ export const adminApi = {
   deleteUser: async (id: string): Promise<void> => {
     await api.delete(`/admin/users/${id}`);
   },
+
+  createUser: async (data: { username: string; email: string; password: string; role: 'user' | 'admin' }): Promise<User> => {
+    const response = await api.post('/admin/users', data);
+    return response.data.user;
+  },
 };

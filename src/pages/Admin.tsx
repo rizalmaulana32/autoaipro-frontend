@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
 import {
   Dialog,
   DialogContent,
@@ -17,7 +19,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/Dialog';
-import { Trash2, Users } from 'lucide-react';
+import { Trash2, UserPlus } from 'lucide-react';
+
+const EMPTY_FORM = { username: '', email: '', password: '', role: 'user' as 'user' | 'admin' };
 
 export default function Admin() {
   const { t } = useTranslation();
@@ -28,6 +32,12 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Create user dialog
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState(EMPTY_FORM);
+  const [createError, setCreateError] = useState('');
+  const [creating, setCreating] = useState(false);
 
   // Redirect non-admins
   useEffect(() => {
@@ -75,6 +85,22 @@ export default function Admin() {
     }
   };
 
+  const handleCreateUser = async () => {
+    setCreateError('');
+    setCreating(true);
+    try {
+      const newUser = await adminApi.createUser(createForm);
+      setUsers((prev) => [newUser, ...prev]);
+      setCreateOpen(false);
+      setCreateForm(EMPTY_FORM);
+    } catch (error: any) {
+      const msg = error?.response?.data?.error || t('admin.errorDuplicate');
+      setCreateError(msg);
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const deleteTarget = users.find((u) => u._id === deleteDialogId);
 
   const formatDate = (dateString?: string) => {
@@ -86,12 +112,15 @@ export default function Admin() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <Users className="h-8 w-8 text-gray-700" />
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{t('admin.title')}</h1>
             <p className="text-gray-600 mt-1">{t('admin.userCount', { count: users.length })}</p>
           </div>
+          <Button onClick={() => { setCreateForm(EMPTY_FORM); setCreateError(''); setCreateOpen(true); }} className="gap-2">
+            <UserPlus className="h-4 w-4" />
+            {t('admin.addUser')}
+          </Button>
         </div>
 
         {/* Users Table */}
@@ -167,6 +196,64 @@ export default function Admin() {
         </Card>
       </div>
 
+      {/* Create User Dialog */}
+      <Dialog open={createOpen} onOpenChange={(open) => !open && setCreateOpen(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('admin.createUser')}</DialogTitle>
+            <DialogDescription>{t('admin.createUserDesc')}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label>{t('admin.username')}</Label>
+              <Input
+                value={createForm.username}
+                onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })}
+                placeholder={t('auth.usernamePlaceholder')}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>{t('admin.email')}</Label>
+              <Input
+                type="email"
+                value={createForm.email}
+                onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                placeholder="email@example.com"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>{t('auth.password')}</Label>
+              <Input
+                type="password"
+                value={createForm.password}
+                onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                placeholder={t('admin.passwordPlaceholder')}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>{t('admin.role')}</Label>
+              <Select
+                value={createForm.role}
+                onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as 'user' | 'admin' })}
+                className="w-full"
+              >
+                <option value="user">{t('admin.roleUser')}</option>
+                <option value="admin">{t('admin.roleAdmin')}</option>
+              </Select>
+            </div>
+            {createError && <p className="text-sm text-red-600">{createError}</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={handleCreateUser} disabled={creating || !createForm.username || !createForm.email || !createForm.password}>
+              {creating ? t('admin.creating') : t('admin.createUser')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteDialogId} onOpenChange={(open) => !open && setDeleteDialogId(null)}>
         <DialogContent>
@@ -180,18 +267,10 @@ export default function Admin() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialogId(null)}
-              disabled={deleting}
-            >
+            <Button variant="outline" onClick={() => setDeleteDialogId(null)} disabled={deleting}>
               {t('common.cancel')}
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteConfirm}
-              disabled={deleting}
-            >
+            <Button variant="destructive" onClick={handleDeleteConfirm} disabled={deleting}>
               {deleting ? t('admin.deleting') : t('admin.deleteBtn')}
             </Button>
           </DialogFooter>

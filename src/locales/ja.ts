@@ -165,6 +165,12 @@ export default {
     deleting: '削除中...',
     deleteBtn: '削除する',
     propertiesUnit: '{{count}} 件',
+    addUser: 'ユーザーを追加',
+    createUser: 'ユーザーを作成',
+    createUserDesc: '新しいユーザーアカウントを追加します。',
+    passwordPlaceholder: '6文字以上',
+    creating: '作成中...',
+    errorDuplicate: 'ユーザー名またはメールアドレスが既に存在します',
   },
 
   // Auto Input SUUMO
