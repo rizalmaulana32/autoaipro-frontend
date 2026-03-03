@@ -146,8 +146,6 @@ export default function Properties() {
     }
   };
 
-  const deleteTarget = properties.find((p) => p._id === deleteDialogId);
-
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
@@ -167,6 +165,7 @@ export default function Properties() {
   };
 
   const properties = filteredProperties();
+  const deleteTarget = properties.find((p) => p._id === deleteDialogId);
   const activeFilters = getActiveFilters();
 
   return (
