@@ -18,7 +18,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/Dialog';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Filter, X } from 'lucide-react';
+import { Filter, X, Trash2 } from 'lucide-react';
 
 // Debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -53,12 +53,15 @@ export default function Properties() {
     getActiveFilters,
     clearFilters,
     removeFilter,
+    deleteProperty,
   } = usePropertyStore();
 
   const [searchInput, setSearchInput] = useState(filters.search);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [tempFilters, setTempFilters] = useState(filters);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Infinite scroll ref
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -119,6 +122,31 @@ export default function Properties() {
   const viewProperty = (id: string) => {
     navigate(`/properties/${id}`);
   };
+
+  const statusVariant = (status?: string) => {
+    if (status === 'registered') return 'default' as const;
+    if (status === 'not_needed') return 'secondary' as const;
+    return 'outline' as const;
+  };
+
+  const statusLabel = (status?: string) => {
+    if (status === 'registered') return t('properties.statusRegistered');
+    if (status === 'not_needed') return t('properties.statusNotNeeded');
+    return t('properties.statusNew');
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteDialogId) return;
+    setDeleting(true);
+    try {
+      await deleteProperty(deleteDialogId);
+    } finally {
+      setDeleting(false);
+      setDeleteDialogId(null);
+    }
+  };
+
+  const deleteTarget = properties.find((p) => p._id === deleteDialogId);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
@@ -336,10 +364,21 @@ export default function Properties() {
                   className="cursor-pointer hover:shadow-lg transition-shadow"
                   onClick={() => viewProperty(property._id)}
                 >
-                  <CardHeader>
+                  <CardHeader className="flex flex-row items-start justify-between space-y-0">
                     <CardTitle className="text-lg">
                       {property.buildingName || t('properties.noName')}
                     </CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteDialogId(property._id);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2 text-sm">
@@ -373,6 +412,11 @@ export default function Properties() {
                           {formatDate(property.created_at)}
                         </span>
                       </div>
+                      <div className="pt-1">
+                        <Badge variant={statusVariant(property.management_status)}>
+                          {statusLabel(property.management_status)}
+                        </Badge>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -389,6 +433,37 @@ export default function Properties() {
           </>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteDialogId} onOpenChange={(open) => !open && setDeleteDialogId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('properties.deleteProperty')}</DialogTitle>
+            <DialogDescription>
+              {t('properties.deleteConfirm')}
+              <span className="block font-semibold mt-2 text-gray-900">
+                {deleteTarget?.buildingName || t('properties.noName')}
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogId(null)}
+              disabled={deleting}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+            >
+              {deleting ? t('common.loading') : t('common.delete')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

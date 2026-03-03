@@ -34,6 +34,7 @@ interface PropertyState {
   fetchMoreProperties: () => Promise<void>;
   fetchProperty: (id: string) => Promise<void>;
   deleteProperty: (id: string) => Promise<void>;
+  updateProperty: (id: string, data: Partial<import('@/api').Property>) => Promise<void>;
   setFilters: (filters: Partial<PropertyFilters>) => void;
   clearFilters: () => void;
   removeFilter: (key: keyof PropertyFilters) => void;
@@ -257,6 +258,20 @@ export const usePropertyStore = create<PropertyState>((set, get) => ({
     } catch (error: any) {
       set({ loading: false });
       throw error; // Toast will be shown by axios interceptor
+    }
+  },
+
+  updateProperty: async (id, data) => {
+    try {
+      const updated = await propertiesApi.update(id, data);
+      set((state) => ({
+        properties: state.properties.map((p) => p._id === id ? { ...p, ...updated } : p),
+        currentProperty: state.currentProperty?._id === id
+          ? { ...state.currentProperty, ...updated }
+          : state.currentProperty,
+      }));
+    } catch (error: any) {
+      throw error;
     }
   },
 

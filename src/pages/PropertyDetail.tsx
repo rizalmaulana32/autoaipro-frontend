@@ -1,11 +1,21 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { usePropertyStore } from '@/store';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Select } from '@/components/ui/Select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/Dialog';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { ArrowLeft, Download, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Download, ExternalLink, Trash2 } from 'lucide-react';
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -13,7 +23,9 @@ export default function PropertyDetail() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { currentProperty, loading, fetchProperty } = usePropertyStore();
+  const { currentProperty, loading, fetchProperty, deleteProperty, updateProperty } = usePropertyStore();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -77,6 +89,35 @@ export default function PropertyDetail() {
     return date.toLocaleDateString('ja-JP');
   };
 
+  const statusVariant = (status?: string) => {
+    if (status === 'registered') return 'default';
+    if (status === 'not_needed') return 'secondary';
+    return 'outline';
+  };
+
+  const statusLabel = (status?: string) => {
+    if (status === 'registered') return t('properties.statusRegistered');
+    if (status === 'not_needed') return t('properties.statusNotNeeded');
+    return t('properties.statusNew');
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!id) return;
+    await updateProperty(id, { management_status: newStatus as any });
+  };
+
+  const handleDelete = async () => {
+    if (!id) return;
+    setDeleting(true);
+    try {
+      await deleteProperty(id);
+      navigate('/');
+    } catch (error) {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -129,7 +170,59 @@ export default function PropertyDetail() {
               </p>
             </div>
           </div>
+          <div className="flex items-center gap-3">
+            <Badge variant={statusVariant(property.management_status)}>
+              {statusLabel(property.management_status)}
+            </Badge>
+            <Select
+              value={property.management_status || 'new'}
+              onChange={(e) => handleStatusChange(e.target.value)}
+              className="w-36"
+            >
+              <option value="new">{t('properties.statusNew')}</option>
+              <option value="registered">{t('properties.statusRegistered')}</option>
+              <option value="not_needed">{t('properties.statusNotNeeded')}</option>
+            </Select>
+            <Button
+              variant="destructive"
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {t('properties.deleteProperty')}
+            </Button>
+          </div>
         </div>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t('properties.deleteProperty')}</DialogTitle>
+              <DialogDescription>
+                {t('properties.deleteConfirm')}
+                <span className="block font-semibold mt-2 text-gray-900">
+                  {property.buildingName || t('properties.noName')}
+                </span>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteDialogOpen(false)}
+                disabled={deleting}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {deleting ? t('common.loading') : t('common.delete')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Basic Information */}
         <Card>

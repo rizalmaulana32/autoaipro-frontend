@@ -137,6 +137,11 @@ export default {
     actions: 'Actions',
     deleteProperty: 'Delete',
     deleteConfirm: 'Are you sure you want to delete this property?',
+
+    managementStatus: 'Management Status',
+    statusNew: 'New',
+    statusRegistered: 'Registered',
+    statusNotNeeded: 'Not Needed',
   },
 
   // Auto Input SUUMO

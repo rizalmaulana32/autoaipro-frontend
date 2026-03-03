@@ -137,6 +137,11 @@ export default {
     actions: 'アクション',
     deleteProperty: '削除',
     deleteConfirm: '本当にこの物件を削除しますか？',
+
+    managementStatus: '管理ステータス',
+    statusNew: '未対応',
+    statusRegistered: '登録済み',
+    statusNotNeeded: '不要',
   },
 
   // Auto Input SUUMO

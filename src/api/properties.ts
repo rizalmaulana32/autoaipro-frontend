@@ -66,6 +66,9 @@ export interface Property {
     image_urls?: string[];
   };
 
+  // Management status
+  management_status?: 'new' | 'registered' | 'not_needed';
+
   // Metadata
   created_at: string;
   updated_at: string;
@@ -103,6 +106,12 @@ export const propertiesApi = {
   // Delete property
   delete: async (id: string): Promise<void> => {
     await api.delete(`/properties/${id}`);
+  },
+
+  // Update property fields
+  update: async (id: string, data: Partial<Property>): Promise<Property> => {
+    const response = await api.put(`/properties/${id}`, data);
+    return response.data.property || response.data;
   },
 
   // Create property (for Chrome Extension)

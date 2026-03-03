@@ -15,7 +15,10 @@ export interface User {
   _id: string;
   username: string;
   email: string;
-  createdAt: string;
+  role?: 'user' | 'admin';
+  created_at?: string;
+  last_login?: string;
+  property_count?: number;
 }
 
 export interface AuthResponse {

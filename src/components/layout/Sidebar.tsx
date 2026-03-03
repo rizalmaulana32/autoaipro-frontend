@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router-dom';
-import { Building2, X } from 'lucide-react';
+import { Building2, X, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
+import { useAuthStore } from '@/store';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { t } = useTranslation();
+  const { user } = useAuthStore();
 
   const navigation = [
     {
@@ -18,6 +20,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       href: '/',
       icon: Building2,
     },
+    ...(user?.role === 'admin' ? [{
+      name: 'アカウント管理',
+      href: '/admin',
+      icon: ShieldCheck,
+    }] : []),
   ];
 
   return (

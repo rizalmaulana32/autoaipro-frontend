@@ -4,6 +4,7 @@ import { useAuthStore } from './store';
 import Login from './pages/Login';
 import Properties from './pages/Properties';
 import PropertyDetail from './pages/PropertyDetail';
+import Admin from './pages/Admin';
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -56,6 +57,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <PropertyDetail />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/admin',
+    element: (
+      <ProtectedRoute>
+        <Admin />
       </ProtectedRoute>
     ),
   },
