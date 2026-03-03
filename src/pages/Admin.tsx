@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/store';
 import { adminApi } from '@/api/admin';
 import type { User } from '@/api/auth';
@@ -19,6 +20,7 @@ import {
 import { Trash2, Users } from 'lucide-react';
 
 export default function Admin() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user: currentUser } = useAuthStore();
 
@@ -87,32 +89,32 @@ export default function Admin() {
         <div className="flex items-center gap-3">
           <Users className="h-8 w-8 text-gray-700" />
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">アカウント管理</h1>
-            <p className="text-gray-600 mt-1">{users.length} ユーザー</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('admin.title')}</h1>
+            <p className="text-gray-600 mt-1">{t('admin.userCount', { count: users.length })}</p>
           </div>
         </div>
 
         {/* Users Table */}
         <Card>
           <CardHeader>
-            <CardTitle>ユーザー一覧</CardTitle>
+            <CardTitle>{t('admin.userList')}</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-center py-8 text-gray-500">読み込み中...</div>
+              <div className="text-center py-8 text-gray-500">{t('admin.loading')}</div>
             ) : users.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">ユーザーが見つかりません</div>
+              <div className="text-center py-8 text-gray-500">{t('admin.noUsers')}</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-left text-gray-500">
-                      <th className="pb-3 pr-4 font-medium">ユーザー名</th>
-                      <th className="pb-3 pr-4 font-medium">メールアドレス</th>
-                      <th className="pb-3 pr-4 font-medium">物件数</th>
-                      <th className="pb-3 pr-4 font-medium">登録日</th>
-                      <th className="pb-3 pr-4 font-medium">最終ログイン</th>
-                      <th className="pb-3 pr-4 font-medium">ロール</th>
+                      <th className="pb-3 pr-4 font-medium">{t('admin.username')}</th>
+                      <th className="pb-3 pr-4 font-medium">{t('admin.email')}</th>
+                      <th className="pb-3 pr-4 font-medium">{t('admin.propertyCount')}</th>
+                      <th className="pb-3 pr-4 font-medium">{t('admin.registeredAt')}</th>
+                      <th className="pb-3 pr-4 font-medium">{t('admin.lastLogin')}</th>
+                      <th className="pb-3 pr-4 font-medium">{t('admin.role')}</th>
                       <th className="pb-3 font-medium"></th>
                     </tr>
                   </thead>
@@ -122,12 +124,12 @@ export default function Admin() {
                         <td className="py-3 pr-4 font-medium">
                           {user.username}
                           {user._id === currentUser?._id && (
-                            <span className="ml-2 text-xs text-gray-400">(あなた)</span>
+                            <span className="ml-2 text-xs text-gray-400">{t('admin.you')}</span>
                           )}
                         </td>
                         <td className="py-3 pr-4 text-gray-600">{user.email}</td>
                         <td className="py-3 pr-4">
-                          <Badge variant="secondary">{user.property_count ?? 0} 件</Badge>
+                          <Badge variant="secondary">{t('admin.propertiesUnit', { count: user.property_count ?? 0 })}</Badge>
                         </td>
                         <td className="py-3 pr-4 text-gray-600">{formatDate(user.created_at)}</td>
                         <td className="py-3 pr-4 text-gray-600">{formatDate(user.last_login)}</td>
@@ -140,8 +142,8 @@ export default function Admin() {
                             disabled={user._id === currentUser?._id}
                             className="w-28"
                           >
-                            <option value="user">ユーザー</option>
-                            <option value="admin">管理者</option>
+                            <option value="user">{t('admin.roleUser')}</option>
+                            <option value="admin">{t('admin.roleAdmin')}</option>
                           </Select>
                         </td>
                         <td className="py-3">
@@ -169,9 +171,9 @@ export default function Admin() {
       <Dialog open={!!deleteDialogId} onOpenChange={(open) => !open && setDeleteDialogId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>ユーザーを削除</DialogTitle>
+            <DialogTitle>{t('admin.deleteUser')}</DialogTitle>
             <DialogDescription>
-              このユーザーとその全ての物件データを削除しますか？この操作は取り消せません。
+              {t('admin.deleteConfirm')}
               <span className="block font-semibold mt-2 text-gray-900">
                 {deleteTarget?.username} ({deleteTarget?.email})
               </span>
@@ -183,14 +185,14 @@ export default function Admin() {
               onClick={() => setDeleteDialogId(null)}
               disabled={deleting}
             >
-              キャンセル
+              {t('common.cancel')}
             </Button>
             <Button
               variant="destructive"
               onClick={handleDeleteConfirm}
               disabled={deleting}
             >
-              {deleting ? '削除中...' : '削除する'}
+              {deleting ? t('admin.deleting') : t('admin.deleteBtn')}
             </Button>
           </DialogFooter>
         </DialogContent>

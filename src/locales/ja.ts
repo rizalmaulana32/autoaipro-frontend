@@ -144,6 +144,29 @@ export default {
     statusNotNeeded: '不要',
   },
 
+  // Admin
+  admin: {
+    title: 'アカウント管理',
+    userList: 'ユーザー一覧',
+    userCount: '{{count}} ユーザー',
+    loading: '読み込み中...',
+    noUsers: 'ユーザーが見つかりません',
+    username: 'ユーザー名',
+    email: 'メールアドレス',
+    propertyCount: '物件数',
+    registeredAt: '登録日',
+    lastLogin: '最終ログイン',
+    role: 'ロール',
+    roleUser: 'ユーザー',
+    roleAdmin: '管理者',
+    you: '(あなた)',
+    deleteUser: 'ユーザーを削除',
+    deleteConfirm: 'このユーザーとその全ての物件データを削除しますか？この操作は取り消せません。',
+    deleting: '削除中...',
+    deleteBtn: '削除する',
+    propertiesUnit: '{{count}} 件',
+  },
+
   // Auto Input SUUMO
   autoInputSuumo: {
     description: 'SUUMOポータルに物件データを自動入力',

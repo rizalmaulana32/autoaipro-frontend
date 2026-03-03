@@ -144,6 +144,29 @@ export default {
     statusNotNeeded: 'Not Needed',
   },
 
+  // Admin
+  admin: {
+    title: 'Account Management',
+    userList: 'User List',
+    userCount: '{{count}} users',
+    loading: 'Loading...',
+    noUsers: 'No users found',
+    username: 'Username',
+    email: 'Email',
+    propertyCount: 'Properties',
+    registeredAt: 'Registered',
+    lastLogin: 'Last Login',
+    role: 'Role',
+    roleUser: 'User',
+    roleAdmin: 'Admin',
+    you: '(you)',
+    deleteUser: 'Delete User',
+    deleteConfirm: 'Are you sure you want to delete this user and all their property data? This action cannot be undone.',
+    deleting: 'Deleting...',
+    deleteBtn: 'Delete',
+    propertiesUnit: '{{count}} items',
+  },
+
   // Auto Input SUUMO
   autoInputSuumo: {
     description: 'Automatically fill property data into SUUMO portal',

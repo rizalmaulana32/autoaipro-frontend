@@ -21,7 +21,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       icon: Building2,
     },
     ...(user?.role === 'admin' ? [{
-      name: 'アカウント管理',
+      name: t('admin.title'),
       href: '/admin',
       icon: ShieldCheck,
     }] : []),
