@@ -15,7 +15,7 @@ export interface User {
   _id: string;
   username: string;
   email: string;
-  role?: 'user' | 'admin';
+  role?: 'user' | 'admin' | 'system_admin' | 'client_admin' | 'member';
   created_at?: string;
   last_login?: string;
   property_count?: number;
