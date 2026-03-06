@@ -12,6 +12,7 @@ export default function Login() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { login, loading } = useAuthStore();
+  // useAuthStore.getState() used post-login to read role synchronously
 
   const [formData, setFormData] = useState({
     username: '',
@@ -26,7 +27,15 @@ export default function Login() {
         username: formData.username,
         password: formData.password,
       });
-      navigate('/');
+      const { user } = useAuthStore.getState();
+      const role = user?.role;
+      if (role === 'system_admin' || role === 'admin') {
+        navigate('/system-admin');
+      } else if (role === 'client_admin') {
+        navigate('/client/top');
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       // Error toast will be shown by axios interceptor
       console.error('Login failed:', err);

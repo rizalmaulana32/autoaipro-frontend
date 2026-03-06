@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router-dom';
-import { Building2, X, ShieldCheck } from 'lucide-react';
+import { Building2, X, ShieldCheck, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/store';
@@ -14,15 +14,23 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { t } = useTranslation();
   const { user } = useAuthStore();
 
+  const role = user?.role;
+  const isSystemAdmin = role === 'system_admin' || role === 'admin';
+
   const navigation = [
     {
       name: t('nav.properties'),
       href: '/',
       icon: Building2,
     },
-    ...(user?.role === 'admin' ? [{
+    ...(isSystemAdmin ? [{
       name: t('admin.title'),
       href: '/admin',
+      icon: Users,
+    }] : []),
+    ...(isSystemAdmin ? [{
+      name: t('systemAdmin.title'),
+      href: '/system-admin',
       icon: ShieldCheck,
     }] : []),
   ];

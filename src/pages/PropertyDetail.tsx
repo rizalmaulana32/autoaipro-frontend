@@ -17,7 +17,7 @@ import {
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { ArrowLeft, Download, ExternalLink, Trash2 } from 'lucide-react';
 
-const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api').replace(/\/api$/, '');
 
 export default function PropertyDetail() {
   const { t } = useTranslation();

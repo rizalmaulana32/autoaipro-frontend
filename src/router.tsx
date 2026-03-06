@@ -5,6 +5,20 @@ import Login from './pages/Login';
 import Properties from './pages/Properties';
 import PropertyDetail from './pages/PropertyDetail';
 import Admin from './pages/Admin';
+import SystemAdmin from './pages/SystemAdmin';
+import ClientLayout from './components/layout/ClientLayout';
+import ClientTop from './pages/ClientTop';
+import ClientProperties from './pages/ClientProperties';
+import ClientAccounts from './pages/ClientAccounts';
+
+// Redirects to correct home page based on user role
+function RoleHome() {
+  const { user } = useAuthStore();
+  const role = user?.role;
+  if (role === 'system_admin' || role === 'admin') return <Navigate to="/system-admin" replace />;
+  if (role === 'client_admin') return <Navigate to="/client/top" replace />;
+  return <Properties />;
+}
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -48,7 +62,7 @@ export const router = createBrowserRouter([
     path: '/',
     element: (
       <ProtectedRoute>
-        <Properties />
+        <RoleHome />
       </ProtectedRoute>
     ),
   },
@@ -67,6 +81,40 @@ export const router = createBrowserRouter([
         <Admin />
       </ProtectedRoute>
     ),
+  },
+  {
+    path: '/system-admin',
+    element: (
+      <ProtectedRoute>
+        <SystemAdmin />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/client',
+    element: (
+      <ProtectedRoute>
+        <ClientLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/client/top" replace />,
+      },
+      {
+        path: 'top',
+        element: <ClientTop />,
+      },
+      {
+        path: 'properties',
+        element: <ClientProperties />,
+      },
+      {
+        path: 'accounts',
+        element: <ClientAccounts />,
+      },
+    ],
   },
   {
     path: '*',

@@ -46,12 +46,13 @@ api.interceptors.response.use(
       }
     } else {
       // Handle other errors - show toast notification
-      const errorMessage = error.response?.data?.message || error.message || 'An error occurred';
+      // Backend returns errors as `error` field, not `message`
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'An error occurred';
       toast.error(errorMessage);
     }
 
     return Promise.reject({
-      message: error.response?.data?.message || error.message || 'An error occurred',
+      message: error.response?.data?.error || error.response?.data?.message || error.message || 'An error occurred',
       status: error.response?.status,
       data: error.response?.data,
     });
