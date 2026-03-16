@@ -20,14 +20,82 @@ export interface AccountStats {
 
 export interface ClientProperty {
   _id: string;
+  reins_id?: string;
+
+  // Location
   buildingName?: string;
   prefecture?: string;
   city?: string;
+  town?: string;
+  addressDetail?: string;
+  roomNumber?: string;
+
+  // Price
   rent?: string;
+  securityDeposit?: string;
+  keyMoney?: string;
+  guaranteeDeposit?: string;
+  managementFee?: string;
+  commonServiceFee?: string;
+  renewalFee?: string;
+  contractPeriod?: string;
+
+  // Area
+  usableArea?: string;
+  balconyArea?: string;
+
+  // Transportation
+  railwayLine1?: string;
+  station1?: string;
+  walkMinutes1?: string;
+  railwayLine2?: string;
+  station2?: string;
+  walkMinutes2?: string;
+  railwayLine3?: string;
+  station3?: string;
+  walkMinutes3?: string;
+
+  // Layout & Building
+  layoutType?: string;
+  constructionDate?: string;
+  buildingStructure?: string;
+  aboveGroundFloors?: string;
+  floorLocation?: string;
+  balconyDirection?: string;
+  totalUnits?: string;
+
+  // Move-in & Parking
+  moveInDate?: string;
+  parkingAvailable?: string;
+  parkingFee?: string;
+
+  // Company
+  companyName?: string;
+  companyPhone?: string;
+  inquiryPhone?: string;
+  contactPerson?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  internalManagementCode?: string;
+
+  // Equipment & Amenities
+  equipment?: string;
+  amenities?: string;
+  conditions?: string;
+  housingPerformance?: string;
+
+  // Files
+  files?: {
+    html_url?: string;
+    floorplan_url?: string;
+    image_urls?: string[];
+  };
+
+  // Meta
   management_status: 'pending' | 'approved' | 'rejected' | 'archived';
   source?: string;
   created_at: string;
-  files?: { image_urls?: string[] };
+  updated_at?: string;
 }
 
 export interface PropertyStats {
