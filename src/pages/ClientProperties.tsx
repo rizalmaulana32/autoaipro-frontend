@@ -12,42 +12,59 @@ import {
 } from '@/components/ui/Dialog';
 import { Search, Download, FileText } from 'lucide-react';
 
-// ── Local helpers ──────────────────────────────────────────────────────────────
+// ── Modal sub-components ───────────────────────────────────────────────────────
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+/** Bold section title with bottom divider (e.g. 基本情報) */
+function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <section>
-      <h3 className="text-sm font-semibold text-gray-700 mb-3 pb-2 border-b border-gray-200">
-        {title}
-      </h3>
+    <h3 className="text-sm font-semibold text-gray-900 pb-2 mb-3 border-b border-gray-200">
       {children}
-    </section>
+    </h3>
   );
 }
 
-function FieldRow({ label, value }: { label: string; value?: string | null }) {
-  if (!value) return null;
+/** Small sub-header inside a section (e.g. 会員情報 inside 担当) */
+function SubLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex justify-between gap-3 py-1 text-sm">
-      <dt className="text-gray-500 shrink-0 w-28">{label}</dt>
-      <dd className="text-gray-900 text-right break-all">{value}</dd>
+    <p className="text-xs font-semibold text-gray-500 mb-2 mt-4 first:mt-0">{children}</p>
+  );
+}
+
+/**
+ * Full-width field: small gray label on top, value on the line below.
+ * Renders nothing when value is empty/null.
+ */
+function Field({
+  label,
+  value,
+  variant,
+}: {
+  label: string;
+  value?: string | null;
+  variant?: 'brand' | 'link';
+}) {
+  if (!value) return null;
+  const valueClass =
+    variant === 'brand' ? 'text-sm font-medium text-teal-600' :
+    variant === 'link'  ? 'text-sm font-medium text-blue-600' :
+                          'text-sm font-medium text-gray-900';
+  return (
+    <div className="mb-3">
+      <dt className="text-xs text-gray-500 mb-0.5">{label}</dt>
+      <dd className={valueClass}>{value}</dd>
     </div>
   );
 }
 
-function TagList({ items, color }: { items: string[]; color: 'blue' | 'green' | 'purple' }) {
-  const cls = {
-    blue:   'bg-blue-50 text-blue-700',
-    green:  'bg-green-50 text-green-700',
-    purple: 'bg-purple-50 text-purple-700',
-  }[color];
+/**
+ * Half-width field for 2-column grids.
+ * Always renders (shows '-' when empty) to keep grid columns aligned.
+ */
+function GridField({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className="flex flex-wrap gap-1">
-      {items.map((item, i) => (
-        <span key={i} className={`px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>
-          {item}
-        </span>
-      ))}
+    <div>
+      <dt className="text-xs text-gray-500 mb-0.5">{label}</dt>
+      <dd className="text-sm font-medium text-gray-900">{value || '-'}</dd>
     </div>
   );
 }
@@ -95,6 +112,7 @@ export default function ClientProperties() {
 
   const handleSearch = () => load();
 
+  /** Update status without closing the modal */
   const handleStatusChange = async (status: 'pending' | 'approved' | 'rejected' | 'archived') => {
     if (!selected) return;
     setUpdating(true);
@@ -103,7 +121,6 @@ export default function ClientProperties() {
       setProperties(prev =>
         prev.map(p => p._id === selected._id ? { ...p, management_status: status } : p)
       );
-      // Keep modal open, just update status
       setSelected(prev => prev ? { ...prev, management_status: status } : null);
     } catch (e) {
       console.error(e);
@@ -112,6 +129,7 @@ export default function ClientProperties() {
     }
   };
 
+  /** Trigger individual file downloads with small delays */
   const handleBatchDownload = (urls: string[]) => {
     urls.forEach((url, i) => {
       setTimeout(() => {
@@ -137,10 +155,19 @@ export default function ClientProperties() {
     }
   };
 
-  // Derived tag arrays (safe when selected is null)
-  const equipmentTags  = selected?.equipment  ? selected.equipment.split(/[,、]+/).map(s => s.trim()).filter(Boolean)  : [];
-  const amenityTags    = selected?.amenities   ? selected.amenities.split(/[,、]+/).map(s => s.trim()).filter(Boolean)   : [];
-  const conditionTags  = selected?.conditions  ? selected.conditions.split(/[,、]+/).map(s => s.trim()).filter(Boolean)  : [];
+  // Pre-split tag lists (safe when selected is null)
+  const allTags = [
+    ...(selected?.equipment  ? selected.equipment.split(/[,、]+/).map(s => s.trim()).filter(Boolean)  : []),
+    ...(selected?.amenities   ? selected.amenities.split(/[,、]+/).map(s => s.trim()).filter(Boolean)   : []),
+    ...(selected?.conditions  ? selected.conditions.split(/[,、]+/).map(s => s.trim()).filter(Boolean)  : []),
+  ];
+
+  // Formatted access string for up to 3 train lines
+  const stationLine = (line?: string | null, station?: string | null, walk?: string | null) => {
+    if (!line && !station) return null;
+    const parts = [station || line, walk ? `徒歩${walk}分` : null].filter(Boolean);
+    return parts.join(' ');
+  };
 
   return (
     <div className="space-y-6">
@@ -185,7 +212,7 @@ export default function ClientProperties() {
         <Button onClick={handleSearch}>{t('common.search')}</Button>
       </div>
 
-      {/* ── Table ── */}
+      {/* ── Property table ── */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -249,244 +276,282 @@ export default function ClientProperties() {
 
       {/* ── Detail modal ── */}
       <Dialog open={!!selected} onOpenChange={(open) => { if (!open) setSelected(null); }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0 gap-0">
+        {/* flex flex-col overrides the default grid so header/body/footer stack correctly */}
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0 gap-0 flex flex-col">
 
           {/* Header */}
-          <DialogHeader className="px-6 pt-5 pb-4 border-b border-gray-200">
-            <DialogTitle>
-              {[selected?.buildingName, selected?.roomNumber].filter(Boolean).join('　') || t('properties.noName')}
+          <DialogHeader className="px-6 pt-5 pb-4 border-b border-gray-200 shrink-0">
+            <DialogTitle className="text-base font-semibold text-gray-900">
+              {[selected?.buildingName, selected?.roomNumber].filter(Boolean).join('　')
+                || t('properties.noName')}
             </DialogTitle>
           </DialogHeader>
 
-          {/* Body — two columns */}
-          <div className="flex" style={{ height: 'calc(90vh - 76px)' }}>
+          {/* ── Body: two columns ── */}
+          <div className="flex flex-1 overflow-hidden">
 
-            {/* ── Left column (scrollable) ── */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 min-w-0">
+            {/* ════ LEFT COLUMN ════ */}
+            <div className="flex-1 overflow-y-auto p-6 min-w-0 space-y-6">
 
               {/* 基本情報 */}
-              <Section title="基本情報">
+              <section>
+                <SectionTitle>{t('clientAdmin.modalBasicInfo')}</SectionTitle>
                 <dl>
-                  <FieldRow
-                    label="所在地"
-                    value={[selected?.prefecture, selected?.city, selected?.town, selected?.addressDetail]
-                      .filter(Boolean).join(' ') || undefined}
+                  <Field
+                    label={t('clientAdmin.modalPropertyName')}
+                    value={[selected?.buildingName, selected?.roomNumber].filter(Boolean).join('　') || undefined}
                   />
-                  <FieldRow label="部屋番号"  value={selected?.roomNumber} />
-                  <FieldRow label="賃料"      value={selected?.rent} />
-                  <FieldRow label="敷金"      value={selected?.securityDeposit} />
-                  <FieldRow label="礼金"      value={selected?.keyMoney} />
-                  <FieldRow label="保証金"    value={selected?.guaranteeDeposit} />
-                  <FieldRow label="管理費"    value={selected?.managementFee} />
-                  <FieldRow label="共益費"    value={selected?.commonServiceFee} />
-                  <FieldRow label="更新料"    value={selected?.renewalFee} />
-                  <FieldRow label="契約期間"  value={selected?.contractPeriod} />
+                  <Field
+                    label={t('clientAdmin.modalAddress')}
+                    value={[selected?.prefecture, selected?.city, selected?.town, selected?.addressDetail]
+                      .filter(Boolean).join('') || undefined}
+                  />
+                  <div className="border-t border-gray-100 pt-3 mt-1 grid grid-cols-2 gap-x-6 gap-y-3">
+                    <GridField label={t('clientAdmin.rent')}                  value={selected?.rent} />
+                    <GridField label={t('clientAdmin.modalManagementFee')}    value={selected?.managementFee} />
+                    <GridField label={t('clientAdmin.modalSecurityDeposit')}  value={selected?.securityDeposit} />
+                    <GridField label={t('clientAdmin.modalKeyMoney')}         value={selected?.keyMoney} />
+                  </div>
                 </dl>
-              </Section>
+              </section>
 
               {/* 担当 */}
               {(selected?.companyName || selected?.contactPerson || selected?.companyPhone) && (
-                <Section title="担当">
+                <section>
+                  <SectionTitle>{t('clientAdmin.modalContactInfo')}</SectionTitle>
+
+                  {/* 会員情報 */}
+                  <SubLabel>{t('clientAdmin.modalCompanyInfo')}</SubLabel>
                   <dl>
-                    <FieldRow label="会社名"      value={selected?.companyName} />
-                    <FieldRow label="代表電話"    value={selected?.companyPhone} />
-                    <FieldRow label="問合せ電話"  value={selected?.inquiryPhone} />
-                    <FieldRow label="担当者名"    value={selected?.contactPerson} />
-                    <FieldRow label="担当直通"    value={selected?.contactPhone} />
-                    <FieldRow label="メール"      value={selected?.contactEmail} />
-                    <FieldRow label="管理番号"    value={selected?.internalManagementCode} />
+                    <Field
+                      label={t('clientAdmin.modalTradeName')}
+                      value={selected?.companyName}
+                      variant="brand"
+                    />
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-3 mb-3">
+                      <GridField label={t('clientAdmin.modalRepresentativePhone')} value={selected?.companyPhone} />
+                      <GridField label={t('clientAdmin.modalInquiryPhone')}        value={selected?.inquiryPhone} />
+                    </div>
                   </dl>
-                </Section>
+
+                  {/* 物件問合せ担当 */}
+                  <SubLabel>{t('clientAdmin.modalPropertyInquiryContact')}</SubLabel>
+                  <dl>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-3 mb-3">
+                      <GridField label={t('clientAdmin.modalPropertyInquiryPerson')} value={selected?.contactPerson} />
+                      <GridField label={t('clientAdmin.modalPropertyContactPhone')}  value={selected?.contactPhone} />
+                    </div>
+                    <Field label={t('clientAdmin.modalEmail')} value={selected?.contactEmail} variant="link" />
+                  </dl>
+
+                  {/* 自社管理欄 */}
+                  {selected?.internalManagementCode && (
+                    <>
+                      <SubLabel>{t('clientAdmin.modalInternalManagement')}</SubLabel>
+                      <p className="text-sm font-medium text-gray-900 mb-3">
+                        {selected.internalManagementCode}
+                      </p>
+                    </>
+                  )}
+                </section>
               )}
 
               {/* 物件詳細 */}
-              <Section title="物件詳細">
-                <dl>
-                  <FieldRow label="間取り"        value={selected?.layoutType} />
-                  <FieldRow label="専有面積"      value={selected?.usableArea} />
-                  <FieldRow label="バルコニー面積" value={selected?.balconyArea} />
-                  <FieldRow label="向き"          value={selected?.balconyDirection} />
-                  <FieldRow label="所在階"        value={selected?.floorLocation} />
-                  <FieldRow label="建物構造"      value={selected?.buildingStructure} />
-                  <FieldRow label="築年月"        value={selected?.constructionDate} />
-                  <FieldRow label="総戸数"        value={selected?.totalUnits} />
-                  <FieldRow label="入居可能日"    value={selected?.moveInDate} />
-                  <FieldRow label="駐車場"        value={selected?.parkingAvailable} />
-                  <FieldRow label="駐車場料金"    value={selected?.parkingFee} />
+              <section>
+                <SectionTitle>{t('clientAdmin.modalPropertyDetail')}</SectionTitle>
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
+                  <GridField label={t('clientAdmin.modalLayout')}      value={selected?.layoutType} />
+                  <GridField label={t('clientAdmin.modalUsableArea')}  value={selected?.usableArea} />
+                  <GridField
+                    label={t('clientAdmin.modalFloors')}
+                    value={
+                      selected?.floorLocation && selected?.aboveGroundFloors
+                        ? `${selected.floorLocation} / ${selected.aboveGroundFloors}階建`
+                        : selected?.floorLocation || selected?.aboveGroundFloors || null
+                    }
+                  />
+                  <GridField label={t('clientAdmin.modalYearBuilt')}    value={selected?.constructionDate} />
+                  <GridField label={t('clientAdmin.modalStructure')}    value={selected?.buildingStructure} />
+                  <GridField label={t('clientAdmin.modalDirection')}    value={selected?.balconyDirection} />
+                  <GridField label={t('clientAdmin.modalBalconyArea')}  value={selected?.balconyArea} />
+                  <GridField label={t('clientAdmin.modalParking')}      value={selected?.parkingAvailable} />
                 </dl>
-              </Section>
+              </section>
 
               {/* アクセス・契約条件 */}
-              {(selected?.railwayLine1 || selected?.railwayLine2 || selected?.railwayLine3) && (
-                <Section title="アクセス・契約条件">
+              {(selected?.railwayLine1 || selected?.station1 || selected?.moveInDate || selected?.contractPeriod) && (
+                <section>
+                  <SectionTitle>{t('clientAdmin.modalAccess')}</SectionTitle>
                   <dl>
-                    {selected?.railwayLine1 && (
-                      <FieldRow
-                        label="路線 1"
-                        value={[
-                          selected.railwayLine1,
-                          selected.station1,
-                          selected.walkMinutes1 ? `徒歩${selected.walkMinutes1}分` : null,
-                        ].filter(Boolean).join('　')}
+                    {stationLine(selected?.railwayLine1, selected?.station1, selected?.walkMinutes1) && (
+                      <Field
+                        label={t('clientAdmin.modalNearestStation')}
+                        value={stationLine(selected?.railwayLine1, selected?.station1, selected?.walkMinutes1)}
                       />
                     )}
-                    {selected?.railwayLine2 && (
-                      <FieldRow
-                        label="路線 2"
-                        value={[
-                          selected.railwayLine2,
-                          selected.station2,
-                          selected.walkMinutes2 ? `徒歩${selected.walkMinutes2}分` : null,
-                        ].filter(Boolean).join('　')}
+                    {stationLine(selected?.railwayLine2, selected?.station2, selected?.walkMinutes2) && (
+                      <Field
+                        label={`${t('clientAdmin.modalNearestStation')} 2`}
+                        value={stationLine(selected?.railwayLine2, selected?.station2, selected?.walkMinutes2)}
                       />
                     )}
-                    {selected?.railwayLine3 && (
-                      <FieldRow
-                        label="路線 3"
-                        value={[
-                          selected.railwayLine3,
-                          selected.station3,
-                          selected.walkMinutes3 ? `徒歩${selected.walkMinutes3}分` : null,
-                        ].filter(Boolean).join('　')}
+                    {stationLine(selected?.railwayLine3, selected?.station3, selected?.walkMinutes3) && (
+                      <Field
+                        label={`${t('clientAdmin.modalNearestStation')} 3`}
+                        value={stationLine(selected?.railwayLine3, selected?.station3, selected?.walkMinutes3)}
                       />
                     )}
+                    {(selected?.prefecture || selected?.city) && (
+                      <Field
+                        label={t('clientAdmin.modalAddress')}
+                        value={[selected?.prefecture, selected?.city, selected?.town, selected?.addressDetail]
+                          .filter(Boolean).join('') || undefined}
+                      />
+                    )}
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                      <GridField label={t('clientAdmin.modalMoveInDate')}    value={selected?.moveInDate} />
+                      <GridField label={t('clientAdmin.modalContractPeriod')} value={selected?.contractPeriod} />
+                    </div>
                   </dl>
-                </Section>
+                </section>
               )}
 
               {/* 設備・条件 */}
-              {(equipmentTags.length > 0 || amenityTags.length > 0 || conditionTags.length > 0) && (
-                <Section title="設備・条件">
-                  <div className="space-y-3">
-                    {equipmentTags.length > 0 && (
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">設備</p>
-                        <TagList items={equipmentTags} color="blue" />
-                      </div>
-                    )}
-                    {amenityTags.length > 0 && (
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">アメニティ</p>
-                        <TagList items={amenityTags} color="purple" />
-                      </div>
-                    )}
-                    {conditionTags.length > 0 && (
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">条件</p>
-                        <TagList items={conditionTags} color="green" />
-                      </div>
-                    )}
+              {allTags.length > 0 && (
+                <section>
+                  <SectionTitle>{t('clientAdmin.modalEquipment')}</SectionTitle>
+                  <div className="flex flex-wrap gap-2">
+                    {allTags.map((tag, i) => (
+                      <span
+                        key={i}
+                        className="px-3 py-1 border border-gray-200 rounded-full text-xs text-gray-700 bg-white"
+                      >
+                        {tag}
+                      </span>
+                    ))}
                   </div>
-                </Section>
+                </section>
               )}
 
             </div>
 
-            {/* ── Right column (scrollable, fixed width) ── */}
-            <div className="w-72 shrink-0 border-l border-gray-200 overflow-y-auto p-6 space-y-6 bg-gray-50/50">
+            {/* ════ RIGHT COLUMN ════ */}
+            <div className="w-96 shrink-0 border-l border-gray-200 overflow-y-auto p-6 space-y-6 bg-gray-50">
 
               {/* 備考 */}
               {selected?.housingPerformance && (
-                <Section title="備考">
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                <section>
+                  <SectionTitle>{t('clientAdmin.modalRemarks')}</SectionTitle>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
                     {selected.housingPerformance}
                   </p>
-                </Section>
+                </section>
               )}
 
               {/* 物件画像 */}
-              <Section title="物件画像">
-                {selected?.files?.image_urls && selected.files.image_urls.length > 0 ? (
-                  <div className="space-y-2">
+              <section>
+                <SectionTitle>{t('clientAdmin.modalPropertyImages')}</SectionTitle>
+                {selected?.files?.image_urls?.length ? (
+                  <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-2">
                       {selected.files.image_urls.map((url, i) => (
                         <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
                           <img
                             src={url}
                             alt={`画像 ${i + 1}`}
-                            className="w-full h-16 object-cover rounded border border-gray-200 hover:opacity-80 transition-opacity"
+                            className="w-full aspect-video object-cover rounded border border-gray-200 hover:opacity-80 transition-opacity"
                           />
                         </a>
                       ))}
                     </div>
                     <button
                       onClick={() => handleBatchDownload(selected.files?.image_urls ?? [])}
-                      className="flex items-center justify-center gap-2 w-full py-2 px-3 border border-gray-300 rounded-md text-xs text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                      className="flex items-center justify-center gap-2 w-full py-2.5 px-3 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                     >
-                      <Download className="h-3 w-3" />
-                      画像を一括ダウンロード
+                      <Download className="h-4 w-4" />
+                      {t('clientAdmin.modalBatchDownload')}
                     </button>
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-400">画像なし</p>
+                  <p className="text-xs text-gray-400">{t('clientAdmin.modalNoImages')}</p>
                 )}
-              </Section>
+              </section>
 
               {/* 物件図面 */}
-              <Section title="物件図面">
+              <section>
+                <SectionTitle>{t('clientAdmin.modalFloorPlan')}</SectionTitle>
                 {selected?.files?.floorplan_url ? (
                   <a
                     href={selected.files.floorplan_url}
                     download
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full py-2 px-3 border border-gray-300 rounded-md text-xs text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-center gap-2 w-full py-2.5 px-3 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                   >
-                    <FileText className="h-3 w-3" />
-                    PDFダウンロード
+                    <FileText className="h-4 w-4" />
+                    {t('clientAdmin.modalDownloadPdf')}
                   </a>
                 ) : (
-                  <p className="text-xs text-gray-400">図面なし</p>
+                  <p className="text-xs text-gray-400">{t('clientAdmin.modalNoFloorPlan')}</p>
                 )}
-              </Section>
+              </section>
 
               {/* 取込情報 */}
-              <Section title="取込情報">
-                <dl>
-                  <FieldRow label="ソース"    value={selected?.source || 'REINS'} />
-                  <FieldRow label="取込日時"  value={selected ? new Date(selected.created_at).toLocaleDateString('ja-JP') : '-'} />
-                  <FieldRow label="REINS ID"  value={selected?.reins_id} />
+              <section>
+                <SectionTitle>{t('clientAdmin.modalImportInfo')}</SectionTitle>
+                <dl className="space-y-3">
+                  <Field label={t('clientAdmin.modalImportSource')} value={selected?.source || 'REINS'} />
+                  <Field
+                    label={t('clientAdmin.modalImportDate')}
+                    value={selected ? new Date(selected.created_at).toLocaleDateString('ja-JP') : '-'}
+                  />
+                  <div>
+                    <dt className="text-xs text-gray-500 mb-1">{t('clientAdmin.currentStatus')}</dt>
+                    <dd>
+                      <Badge variant={STATUS_VARIANT[selected?.management_status ?? ''] ?? 'secondary'}>
+                        {statusLabel(selected?.management_status ?? '')}
+                      </Badge>
+                    </dd>
+                  </div>
                 </dl>
-              </Section>
+              </section>
 
               {/* ステータスを変更 */}
-              <Section title="ステータスを変更">
+              <section>
+                <SectionTitle>{t('clientAdmin.changeStatus')}</SectionTitle>
                 <div className="space-y-2">
-                  {([
-                    {
-                      status:      'pending'  as const,
-                      label:       '未登録',
-                      activeClass: 'bg-blue-600 text-white',
-                      idleClass:   'bg-white text-blue-600 border border-blue-200 hover:bg-blue-50',
-                    },
-                    {
-                      status:      'approved' as const,
-                      label:       '登録済み',
-                      activeClass: 'bg-green-600 text-white',
-                      idleClass:   'bg-white text-green-600 border border-green-200 hover:bg-green-50',
-                    },
-                    {
-                      status:      'archived' as const,
-                      label:       'アーカイブ',
-                      activeClass: 'bg-gray-800 text-white',
-                      idleClass:   'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100',
-                    },
-                  ]).map(({ status, label, activeClass, idleClass }) => (
-                    <button
-                      key={status}
-                      onClick={() => handleStatusChange(status)}
-                      disabled={updating}
-                      className={`w-full py-2 rounded-md text-sm font-medium transition-colors ${
-                        selected?.management_status === status ? activeClass : idleClass
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
+                  <button
+                    onClick={() => handleStatusChange('pending')}
+                    disabled={updating}
+                    className="w-full py-3 rounded-md text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
+                  >
+                    {t('clientAdmin.modalUnregistered')}
+                  </button>
+                  <button
+                    onClick={() => handleStatusChange('approved')}
+                    disabled={updating}
+                    className="w-full py-3 rounded-md text-sm font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-60"
+                  >
+                    {t('clientAdmin.modalRegistered')}
+                  </button>
+                  <button
+                    onClick={() => handleStatusChange('archived')}
+                    disabled={updating}
+                    className="w-full py-3 rounded-md text-sm font-semibold bg-gray-700 text-white hover:bg-gray-800 transition-colors disabled:opacity-60"
+                  >
+                    {t('clientAdmin.statusArchived')}
+                  </button>
                 </div>
-              </Section>
+              </section>
 
             </div>
+          </div>
+
+          {/* Footer */}
+          <div className="border-t border-gray-200 px-6 py-3 flex justify-end shrink-0 bg-white">
+            <Button variant="outline" size="sm" onClick={() => setSelected(null)}>
+              {t('clientAdmin.closeModal')}
+            </Button>
           </div>
 
         </DialogContent>
