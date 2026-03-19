@@ -295,6 +295,9 @@ export default {
     modalNoImages: 'No images',
     modalUnregistered: 'Unregistered',
     modalRegistered: 'Registered',
+    modalRenewalFee: 'Renewal Fee',
+    modalTotalUnits: 'Total Units',
+    modalParkingFee: 'Parking Fee',
 
     // Accounts
     accountStatus: 'Account Usage',

@@ -295,6 +295,9 @@ export default {
     modalNoImages: '画像なし',
     modalUnregistered: '未登録',
     modalRegistered: '登録済み',
+    modalRenewalFee: '更新料',
+    modalTotalUnits: '総戸数',
+    modalParkingFee: '駐車場代',
 
     // Accounts
     accountStatus: 'アカウント発行状況',

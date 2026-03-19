@@ -129,20 +129,31 @@ export default function ClientProperties() {
     }
   };
 
-  /** Trigger individual file downloads with small delays */
-  const handleBatchDownload = (urls: string[]) => {
-    urls.forEach((url, i) => {
-      setTimeout(() => {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `image_${i + 1}`;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      }, i * 300);
-    });
+  /** Force-download a single file via fetch → blob (works for cross-origin URLs) */
+  const downloadFile = async (url: string, filename: string) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+    } catch {
+      window.open(url, '_blank');
+    }
+  };
+
+  /** Download all images sequentially with a small stagger */
+  const handleBatchDownload = async (urls: string[]) => {
+    for (let i = 0; i < urls.length; i++) {
+      if (i > 0) await new Promise<void>(r => setTimeout(r, 400));
+      const ext = urls[i].split('?')[0].split('.').pop() || 'jpg';
+      await downloadFile(urls[i], `image_${i + 1}.${ext}`);
+    }
   };
 
   const statusLabel = (status: string) => {
@@ -155,12 +166,20 @@ export default function ClientProperties() {
     }
   };
 
-  // Pre-split tag lists (safe when selected is null)
+  // Pre-split tag lists — handles commas, Japanese commas, middle-dot, newlines
+  const splitTags = (val?: string | null) =>
+    val ? val.split(/[,、・\n\r]+/).map(s => s.trim()).filter(Boolean) : [];
   const allTags = [
-    ...(selected?.equipment  ? selected.equipment.split(/[,、]+/).map(s => s.trim()).filter(Boolean)  : []),
-    ...(selected?.amenities   ? selected.amenities.split(/[,、]+/).map(s => s.trim()).filter(Boolean)   : []),
-    ...(selected?.conditions  ? selected.conditions.split(/[,、]+/).map(s => s.trim()).filter(Boolean)  : []),
+    ...splitTags(selected?.equipment),
+    ...splitTags(selected?.amenities),
+    ...splitTags(selected?.conditions),
   ];
+
+  // Unit formatters — append suffix only when value doesn't already contain one
+  const formatRent = (val?: string | null) =>
+    val ? (/[万円]/.test(val) ? val : `${val}万円`) : null;
+  const formatFee = (val?: string | null) =>
+    val ? (/[万円]/.test(val) ? val : `${val}円`) : null;
 
   // Formatted access string for up to 3 train lines
   const stationLine = (line?: string | null, station?: string | null, walk?: string | null) => {
@@ -307,10 +326,13 @@ export default function ClientProperties() {
                       .filter(Boolean).join('') || undefined}
                   />
                   <div className="border-t border-gray-100 pt-3 mt-1 grid grid-cols-2 gap-x-6 gap-y-3">
-                    <GridField label={t('clientAdmin.rent')}                  value={selected?.rent} />
-                    <GridField label={t('clientAdmin.modalManagementFee')}    value={selected?.managementFee} />
-                    <GridField label={t('clientAdmin.modalSecurityDeposit')}  value={selected?.securityDeposit} />
-                    <GridField label={t('clientAdmin.modalKeyMoney')}         value={selected?.keyMoney} />
+                    <GridField label={t('clientAdmin.rent')}                    value={formatRent(selected?.rent)} />
+                    <GridField label={t('clientAdmin.modalManagementFee')}      value={formatFee(selected?.managementFee)} />
+                    <GridField label={t('clientAdmin.modalSecurityDeposit')}    value={selected?.securityDeposit} />
+                    <GridField label={t('clientAdmin.modalKeyMoney')}           value={selected?.keyMoney} />
+                    <GridField label={t('properties.guaranteeDeposit')}         value={selected?.guaranteeDeposit} />
+                    <GridField label={t('properties.commonServiceFee')}         value={formatFee(selected?.commonServiceFee)} />
+                    <GridField label={t('clientAdmin.modalRenewalFee')}         value={selected?.renewalFee} />
                   </div>
                 </dl>
               </section>
@@ -374,52 +396,45 @@ export default function ClientProperties() {
                   <GridField label={t('clientAdmin.modalStructure')}    value={selected?.buildingStructure} />
                   <GridField label={t('clientAdmin.modalDirection')}    value={selected?.balconyDirection} />
                   <GridField label={t('clientAdmin.modalBalconyArea')}  value={selected?.balconyArea} />
+                  <GridField label={t('clientAdmin.modalTotalUnits')}   value={selected?.totalUnits} />
                   <GridField label={t('clientAdmin.modalParking')}      value={selected?.parkingAvailable} />
+                  <GridField label={t('clientAdmin.modalParkingFee')}   value={selected?.parkingFee} />
                 </dl>
               </section>
 
               {/* アクセス・契約条件 */}
-              {(selected?.railwayLine1 || selected?.station1 || selected?.moveInDate || selected?.contractPeriod) && (
-                <section>
-                  <SectionTitle>{t('clientAdmin.modalAccess')}</SectionTitle>
-                  <dl>
-                    {stationLine(selected?.railwayLine1, selected?.station1, selected?.walkMinutes1) && (
-                      <Field
-                        label={t('clientAdmin.modalNearestStation')}
-                        value={stationLine(selected?.railwayLine1, selected?.station1, selected?.walkMinutes1)}
-                      />
-                    )}
-                    {stationLine(selected?.railwayLine2, selected?.station2, selected?.walkMinutes2) && (
-                      <Field
-                        label={`${t('clientAdmin.modalNearestStation')} 2`}
-                        value={stationLine(selected?.railwayLine2, selected?.station2, selected?.walkMinutes2)}
-                      />
-                    )}
-                    {stationLine(selected?.railwayLine3, selected?.station3, selected?.walkMinutes3) && (
-                      <Field
-                        label={`${t('clientAdmin.modalNearestStation')} 3`}
-                        value={stationLine(selected?.railwayLine3, selected?.station3, selected?.walkMinutes3)}
-                      />
-                    )}
-                    {(selected?.prefecture || selected?.city) && (
-                      <Field
-                        label={t('clientAdmin.modalAddress')}
-                        value={[selected?.prefecture, selected?.city, selected?.town, selected?.addressDetail]
-                          .filter(Boolean).join('') || undefined}
-                      />
-                    )}
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                      <GridField label={t('clientAdmin.modalMoveInDate')}    value={selected?.moveInDate} />
-                      <GridField label={t('clientAdmin.modalContractPeriod')} value={selected?.contractPeriod} />
-                    </div>
-                  </dl>
-                </section>
-              )}
+              <section>
+                <SectionTitle>{t('clientAdmin.modalAccess')}</SectionTitle>
+                <dl>
+                  {stationLine(selected?.railwayLine1, selected?.station1, selected?.walkMinutes1) && (
+                    <Field
+                      label={t('clientAdmin.modalNearestStation')}
+                      value={stationLine(selected?.railwayLine1, selected?.station1, selected?.walkMinutes1)}
+                    />
+                  )}
+                  {stationLine(selected?.railwayLine2, selected?.station2, selected?.walkMinutes2) && (
+                    <Field
+                      label={`${t('clientAdmin.modalNearestStation')} 2`}
+                      value={stationLine(selected?.railwayLine2, selected?.station2, selected?.walkMinutes2)}
+                    />
+                  )}
+                  {stationLine(selected?.railwayLine3, selected?.station3, selected?.walkMinutes3) && (
+                    <Field
+                      label={`${t('clientAdmin.modalNearestStation')} 3`}
+                      value={stationLine(selected?.railwayLine3, selected?.station3, selected?.walkMinutes3)}
+                    />
+                  )}
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                    <GridField label={t('clientAdmin.modalMoveInDate')}     value={selected?.moveInDate} />
+                    <GridField label={t('clientAdmin.modalContractPeriod')} value={selected?.contractPeriod} />
+                  </div>
+                </dl>
+              </section>
 
               {/* 設備・条件 */}
-              {allTags.length > 0 && (
-                <section>
-                  <SectionTitle>{t('clientAdmin.modalEquipment')}</SectionTitle>
+              <section>
+                <SectionTitle>{t('clientAdmin.modalEquipment')}</SectionTitle>
+                {allTags.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {allTags.map((tag, i) => (
                       <span
@@ -430,8 +445,10 @@ export default function ClientProperties() {
                       </span>
                     ))}
                   </div>
-                </section>
-              )}
+                ) : (
+                  <p className="text-xs text-gray-400">-</p>
+                )}
+              </section>
 
             </div>
 
@@ -481,16 +498,13 @@ export default function ClientProperties() {
               <section>
                 <SectionTitle>{t('clientAdmin.modalFloorPlan')}</SectionTitle>
                 {selected?.files?.floorplan_url ? (
-                  <a
-                    href={selected.files.floorplan_url}
-                    download
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => downloadFile(selected.files!.floorplan_url!, 'floor_plan.pdf')}
                     className="flex items-center justify-center gap-2 w-full py-2.5 px-3 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                   >
                     <FileText className="h-4 w-4" />
                     {t('clientAdmin.modalDownloadPdf')}
-                  </a>
+                  </button>
                 ) : (
                   <p className="text-xs text-gray-400">{t('clientAdmin.modalNoFloorPlan')}</p>
                 )}
@@ -519,29 +533,17 @@ export default function ClientProperties() {
               {/* ステータスを変更 */}
               <section>
                 <SectionTitle>{t('clientAdmin.changeStatus')}</SectionTitle>
-                <div className="space-y-2">
-                  <button
-                    onClick={() => handleStatusChange('pending')}
-                    disabled={updating}
-                    className="w-full py-3 rounded-md text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
-                  >
-                    {t('clientAdmin.modalUnregistered')}
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange('approved')}
-                    disabled={updating}
-                    className="w-full py-3 rounded-md text-sm font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-60"
-                  >
-                    {t('clientAdmin.modalRegistered')}
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange('archived')}
-                    disabled={updating}
-                    className="w-full py-3 rounded-md text-sm font-semibold bg-gray-700 text-white hover:bg-gray-800 transition-colors disabled:opacity-60"
-                  >
-                    {t('clientAdmin.statusArchived')}
-                  </button>
-                </div>
+                <select
+                  value={selected?.management_status ?? ''}
+                  onChange={e => handleStatusChange(e.target.value as 'pending' | 'approved' | 'rejected' | 'archived')}
+                  disabled={updating}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
+                >
+                  <option value="pending">{t('clientAdmin.statusPending')}</option>
+                  <option value="approved">{t('clientAdmin.statusApproved')}</option>
+                  <option value="rejected">{t('clientAdmin.statusRejected')}</option>
+                  <option value="archived">{t('clientAdmin.statusArchived')}</option>
+                </select>
               </section>
 
             </div>
