@@ -57,6 +57,7 @@ export interface ClientProperty {
 
   // Layout & Building
   layoutType?: string;
+  roomCount?: string;
   constructionDate?: string;
   buildingStructure?: string;
   aboveGroundFloors?: string;
@@ -137,5 +138,10 @@ export const clientAdminApi = {
   updatePropertyStatus: async (id: string, status: 'pending' | 'approved' | 'rejected' | 'archived'): Promise<ClientProperty> => {
     const response = await api.put(`/client/properties/${id}/status`, { status });
     return response.data.property;
+  },
+
+  reparseProperty: async (id: string): Promise<{ updated: number; fields: string[] }> => {
+    const response = await api.post(`/client/properties/${id}/reparse`);
+    return response.data;
   },
 };

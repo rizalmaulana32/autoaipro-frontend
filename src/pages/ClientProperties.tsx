@@ -91,6 +91,7 @@ export default function ClientProperties() {
 
   const [selected, setSelected] = useState<ClientProperty | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [reparsing, setReparsing] = useState(false);
 
   const load = async () => {
     try {
@@ -111,6 +112,26 @@ export default function ClientProperties() {
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearch = () => load();
+
+  /** Open property modal — auto re-parse if fields like balconyDirection or moveInDate are missing */
+  const handleOpenProperty = async (prop: ClientProperty) => {
+    setSelected(prop);
+    const needsReparse = prop.files?.html_url && (!prop.balconyDirection || !prop.moveInDate || !prop.railwayLine1);
+    if (!needsReparse) return;
+    setReparsing(true);
+    try {
+      await clientAdminApi.reparseProperty(prop._id);
+      // Reload the property list to reflect updated data
+      const data = await clientAdminApi.getProperties({ search: search || undefined, status: statusFilter || undefined });
+      setProperties(data.properties);
+      const updated = data.properties.find(p => p._id === prop._id);
+      if (updated) setSelected(updated);
+    } catch (e) {
+      console.error('Reparse failed:', e);
+    } finally {
+      setReparsing(false);
+    }
+  };
 
   /** Update status without closing the modal */
   const handleStatusChange = async (status: 'pending' | 'approved' | 'rejected' | 'archived') => {
@@ -180,12 +201,20 @@ export default function ClientProperties() {
     val ? (/[万円]/.test(val) ? val : `${val}万円`) : null;
   const formatFee = (val?: string | null) =>
     val ? (/[万円]/.test(val) ? val : `${val}円`) : null;
+  // Deposit/key money: plain numbers are in ヶ月 units
+  const formatDeposit = (val?: string | null) =>
+    val ? (/[ヶ月万円]/.test(val) ? val : `${val}ヶ月`) : null;
 
   // Formatted access string for up to 3 train lines
   const stationLine = (line?: string | null, station?: string | null, walk?: string | null) => {
     if (!line && !station) return null;
-    const parts = [station || line, walk ? `徒歩${walk}分` : null].filter(Boolean);
-    return parts.join(' ');
+    const locationParts = [line, station].filter(Boolean);
+    const location = locationParts.join(' ');
+    // If walk already has a unit (e.g. "300m"), use as-is; plain numbers get 分
+    const walkStr = walk
+      ? /^\d+$/.test(walk.trim()) ? `徒歩${walk}分` : `徒歩${walk}`
+      : null;
+    return [location, walkStr].filter(Boolean).join(' ');
   };
 
   return (
@@ -281,7 +310,7 @@ export default function ClientProperties() {
                 </td>
                 <td className="px-6 py-4">
                   <button
-                    onClick={() => setSelected(prop)}
+                    onClick={() => handleOpenProperty(prop)}
                     className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                   >
                     {t('clientAdmin.detail')}
@@ -300,9 +329,12 @@ export default function ClientProperties() {
 
           {/* Header */}
           <DialogHeader className="px-6 pt-5 pb-4 border-b border-gray-200 shrink-0">
-            <DialogTitle className="text-base font-semibold text-gray-900">
+            <DialogTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
               {[selected?.buildingName, selected?.roomNumber].filter(Boolean).join('　')
                 || t('properties.noName')}
+              {reparsing && (
+                <span className="text-xs font-normal text-gray-400 animate-pulse">データ同期中...</span>
+              )}
             </DialogTitle>
           </DialogHeader>
 
@@ -328,8 +360,8 @@ export default function ClientProperties() {
                   <div className="border-t border-gray-100 pt-3 mt-1 grid grid-cols-2 gap-x-6 gap-y-3">
                     <GridField label={t('clientAdmin.rent')}                    value={formatRent(selected?.rent)} />
                     <GridField label={t('clientAdmin.modalManagementFee')}      value={formatFee(selected?.managementFee)} />
-                    <GridField label={t('clientAdmin.modalSecurityDeposit')}    value={selected?.securityDeposit} />
-                    <GridField label={t('clientAdmin.modalKeyMoney')}           value={selected?.keyMoney} />
+                    <GridField label={t('clientAdmin.modalSecurityDeposit')}    value={formatDeposit(selected?.securityDeposit)} />
+                    <GridField label={t('clientAdmin.modalKeyMoney')}           value={formatDeposit(selected?.keyMoney)} />
                     <GridField label={t('properties.guaranteeDeposit')}         value={selected?.guaranteeDeposit} />
                     <GridField label={t('properties.commonServiceFee')}         value={formatFee(selected?.commonServiceFee)} />
                     <GridField label={t('clientAdmin.modalRenewalFee')}         value={selected?.renewalFee} />
@@ -382,7 +414,10 @@ export default function ClientProperties() {
               <section>
                 <SectionTitle>{t('clientAdmin.modalPropertyDetail')}</SectionTitle>
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
-                  <GridField label={t('clientAdmin.modalLayout')}      value={selected?.layoutType} />
+                  <GridField
+                    label={t('clientAdmin.modalLayout')}
+                    value={[selected?.roomCount, selected?.layoutType].filter(Boolean).join('') || null}
+                  />
                   <GridField label={t('clientAdmin.modalUsableArea')}  value={selected?.usableArea} />
                   <GridField
                     label={t('clientAdmin.modalFloors')}
