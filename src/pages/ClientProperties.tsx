@@ -190,20 +190,25 @@ export default function ClientProperties() {
   // Pre-split tag lists — handles commas, Japanese commas, middle-dot, newlines
   const splitTags = (val?: string | null) =>
     val ? val.split(/[,、・\n\r]+/).map(s => s.trim()).filter(Boolean) : [];
-  const allTags = [
+  // Deduplicate across equipment/amenities/conditions — all three may extract from the same REINS element
+  const allTags = [...new Set([
     ...splitTags(selected?.equipment),
     ...splitTags(selected?.amenities),
     ...splitTags(selected?.conditions),
-  ];
+  ])];
 
   // Unit formatters — append suffix only when value doesn't already contain one
   const formatRent = (val?: string | null) =>
     val ? (/[万円]/.test(val) ? val : `${val}万円`) : null;
   const formatFee = (val?: string | null) =>
     val ? (/[万円]/.test(val) ? val : `${val}円`) : null;
-  // Deposit/key money: plain numbers are in ヶ月 units
-  const formatDeposit = (val?: string | null) =>
-    val ? (/[ヶ月万円]/.test(val) ? val : `${val}ヶ月`) : null;
+  // Deposit/key money: if unit already present show as-is; bare decimals (e.g. "4.3") are 万円
+  const formatDeposit = (val?: string | null) => {
+    if (!val) return null;
+    if (/[ヶ月万円]/.test(val)) return val;          // unit already stored
+    // Bare number: integer-only → likely ヶ月 (e.g. "2"), decimal → likely 万円 (e.g. "4.3")
+    return /\./.test(val) ? `${val}万円` : `${val}ヶ月`;
+  };
 
   // Formatted access string for up to 3 train lines
   const stationLine = (line?: string | null, station?: string | null, walk?: string | null) => {
@@ -416,7 +421,14 @@ export default function ClientProperties() {
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
                   <GridField
                     label={t('clientAdmin.modalLayout')}
-                    value={[selected?.roomCount, selected?.layoutType].filter(Boolean).join('') || null}
+                    value={(() => {
+                      const layout = selected?.layoutType || '';
+                      const isStudio = /ワンルーム|1R/i.test(layout);
+                      if (isStudio) return 'ワンルーム';
+                      // Strip trailing 室 from roomCount (e.g. "1室" → "1")
+                      const count = (selected?.roomCount || '').replace(/室$/, '').trim();
+                      return [count, layout].filter(Boolean).join('') || null;
+                    })()}
                   />
                   <GridField label={t('clientAdmin.modalUsableArea')}  value={selected?.usableArea} />
                   <GridField
