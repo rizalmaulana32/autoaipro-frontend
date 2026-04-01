@@ -422,10 +422,21 @@ export default function ClientProperties() {
                   <GridField
                     label={t('clientAdmin.modalLayout')}
                     value={(() => {
-                      const layout = selected?.layoutType || '';
+                      const LAYOUT_MAP: Record<string, string> = {
+                        '01': 'ワンルーム', '1': 'ワンルーム',
+                        '02': 'K',    '2': 'K',
+                        '03': 'DK',   '3': 'DK',
+                        '04': 'LDK',  '4': 'LDK',
+                        '05': 'SDK',  '5': 'SDK',
+                        '06': 'SLDK', '6': 'SLDK',
+                        '07': 'LK',   '7': 'LK',
+                        '08': 'SK',   '8': 'SK',
+                        '09': 'SLK',  '9': 'SLK',
+                      };
+                      const rawLayout = selected?.layoutType || '';
+                      const layout = LAYOUT_MAP[rawLayout] || rawLayout;
                       const isStudio = /ワンルーム|1R/i.test(layout);
                       if (isStudio) return 'ワンルーム';
-                      // Strip trailing 室 from roomCount (e.g. "1室" → "1")
                       const count = (selected?.roomCount || '').replace(/室$/, '').trim();
                       return [count, layout].filter(Boolean).join('') || null;
                     })()}
@@ -440,7 +451,22 @@ export default function ClientProperties() {
                     }
                   />
                   <GridField label={t('clientAdmin.modalYearBuilt')}    value={selected?.constructionDate} />
-                  <GridField label={t('clientAdmin.modalStructure')}    value={selected?.buildingStructure} />
+                  <GridField label={t('clientAdmin.modalStructure')}    value={(() => {
+                      const STRUCTURE_MAP: Record<string, string> = {
+                        '01': '木造',    '1': '木造',
+                        '02': 'ブロック', '2': 'ブロック',
+                        '03': '鉄骨',    '3': '鉄骨',
+                        '04': '鉄筋コン', '4': '鉄筋コン',
+                        '05': '鉄骨鉄筋', '5': '鉄骨鉄筋',
+                        '06': '軽量鉄骨', '6': '軽量鉄骨',
+                        '07': 'プレコン', '7': 'プレコン',
+                        '08': '気泡コン', '8': '気泡コン',
+                        '09': '鉄骨プレ', '9': '鉄骨プレ',
+                        '10': 'その他',
+                      };
+                      const raw = selected?.buildingStructure || '';
+                      return STRUCTURE_MAP[raw] || raw || null;
+                    })()} />
                   <GridField label={t('clientAdmin.modalDirection')}    value={selected?.balconyDirection} />
                   <GridField label={t('clientAdmin.modalBalconyArea')}  value={selected?.balconyArea} />
                   <GridField label={t('clientAdmin.modalTotalUnits')}   value={selected?.totalUnits} />
