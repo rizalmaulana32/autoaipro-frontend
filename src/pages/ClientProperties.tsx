@@ -60,11 +60,24 @@ function Field({
  * Half-width field for 2-column grids.
  * Always renders (shows '-' when empty) to keep grid columns aligned.
  */
+function decodeEntities(str?: string | null): string | null {
+  if (!str) return null;
+  return str
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#(\d+);/g, (_, code: string) => String.fromCharCode(parseInt(code)))
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function GridField({ label, value }: { label: string; value?: string | null }) {
   return (
     <div>
       <dt className="text-xs text-gray-500 mb-0.5">{label}</dt>
-      <dd className="text-sm font-medium text-gray-900">{value || '-'}</dd>
+      <dd className="text-sm font-medium text-gray-900">{decodeEntities(value) || '-'}</dd>
     </div>
   );
 }
