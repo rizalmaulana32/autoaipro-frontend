@@ -511,7 +511,13 @@ export default function ClientProperties() {
                     />
                   )}
                   <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                    <GridField label={t('clientAdmin.modalMoveInDate')}     value={selected?.moveInDate} />
+                    <GridField label={t('clientAdmin.modalMoveInDate')}     value={(() => {
+                      const v = selected?.moveInDate;
+                      // Filter out 取引態様 values wrongly stored as moveInDate
+                      const invalidValues = ['専任', '専属専任', '貸主', 'その他', '一般', '媒介'];
+                      if (!v || invalidValues.some(x => v.trim() === x)) return null;
+                      return v;
+                    })()} />
                     <GridField label={t('clientAdmin.modalContractPeriod')} value={selected?.contractPeriod} />
                   </div>
                 </dl>
